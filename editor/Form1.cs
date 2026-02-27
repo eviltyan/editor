@@ -358,5 +358,129 @@ namespace editor
                 }
             }
         }
+
+        private void copyText()
+        {
+            RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
+            if (editBox != null && editBox.SelectionLength > 0)
+            {
+                editBox.Copy();
+            }
+            else
+            {
+                MessageBox.Show("Нет выделенного текста для копирования!",
+                    "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void copyButton_Click(object sender, EventArgs e)
+        {
+            copyText();
+        }
+
+        private void копироватьToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            copyText();
+        }
+
+        private void cutText()
+        {
+            RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
+            if (editBox != null && editBox.SelectionLength > 0)
+            {
+                editBox.Cut();
+            }
+            else
+            {
+                MessageBox.Show("Нет выделенного текста для вырезания!",
+                    "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void cutButton_Click(object sender, EventArgs e)
+        {
+            cutText();
+        }
+
+        private void вырезатьToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            cutText();
+        }
+
+        private void pasteText()
+        {
+            RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
+            if (editBox != null)
+            {
+                if (Clipboard.ContainsText())
+                {
+                    editBox.Paste();
+                }
+                else
+                {
+                    MessageBox.Show("Буфер обмена пуст или содержит не текст!",
+                        "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
+
+        private void pasteButton_Click(object sender, EventArgs e)
+        {
+            pasteText();
+        }
+
+        private void вставитьToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            pasteText();
+        }
+
+        private void выделитьВсёToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
+            if (editBox != null)
+            {
+                editBox.SelectAll();
+                editBox.Focus();
+            }
+        }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
+            if (editBox == null) return base.ProcessCmdKey(ref msg, keyData);
+
+            // Ctrl+A - Выделить всё
+            if (keyData == (Keys.Control | Keys.A))
+            {
+                editBox.SelectAll();
+                return true;
+            }
+
+            // Ctrl+C - Копировать
+            if (keyData == (Keys.Control | Keys.C))
+            {
+                if (editBox.SelectionLength > 0)
+                    editBox.Copy();
+                return true;
+            }
+
+            // Ctrl+X - Вырезать
+            if (keyData == (Keys.Control | Keys.X))
+            {
+                if (editBox.SelectionLength > 0)
+                    editBox.Cut();
+                return true;
+            }
+
+            // Ctrl+V - Вставить
+            if (keyData == (Keys.Control | Keys.V))
+            {
+                if (Clipboard.ContainsText())
+                    editBox.Paste();
+                return true;
+            }
+
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
     }
 }

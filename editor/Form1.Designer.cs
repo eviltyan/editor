@@ -40,7 +40,7 @@
             forwardButton = new Button();
             backButton = new Button();
             cancelButton = new Button();
-            button3 = new Button();
+            saveButton = new Button();
             openButton = new Button();
             createButton = new Button();
             tabControl1 = new TabControl();
@@ -112,7 +112,7 @@
             tableLayoutPanel1.Controls.Add(forwardButton, 5, 0);
             tableLayoutPanel1.Controls.Add(backButton, 4, 0);
             tableLayoutPanel1.Controls.Add(cancelButton, 3, 0);
-            tableLayoutPanel1.Controls.Add(button3, 2, 0);
+            tableLayoutPanel1.Controls.Add(saveButton, 2, 0);
             tableLayoutPanel1.Controls.Add(openButton, 1, 0);
             tableLayoutPanel1.Controls.Add(createButton, 0, 0);
             tableLayoutPanel1.Controls.Add(tabControl1, 0, 1);
@@ -255,18 +255,19 @@
             toolTip1.SetToolTip(cancelButton, "Отменить все изменения");
             cancelButton.UseVisualStyleBackColor = true;
             // 
-            // button3
+            // saveButton
             // 
-            button3.Anchor = AnchorStyles.None;
-            button3.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            button3.BackgroundImage = (Image)resources.GetObject("button3.BackgroundImage");
-            button3.BackgroundImageLayout = ImageLayout.Stretch;
-            button3.Location = new Point(95, 3);
-            button3.Name = "button3";
-            button3.Size = new Size(40, 39);
-            button3.TabIndex = 4;
-            toolTip1.SetToolTip(button3, "Сохранить документ");
-            button3.UseVisualStyleBackColor = true;
+            saveButton.Anchor = AnchorStyles.None;
+            saveButton.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            saveButton.BackgroundImage = (Image)resources.GetObject("saveButton.BackgroundImage");
+            saveButton.BackgroundImageLayout = ImageLayout.Stretch;
+            saveButton.Location = new Point(95, 3);
+            saveButton.Name = "saveButton";
+            saveButton.Size = new Size(40, 39);
+            saveButton.TabIndex = 4;
+            toolTip1.SetToolTip(saveButton, "Сохранить документ");
+            saveButton.UseVisualStyleBackColor = true;
+            saveButton.Click += saveButton_Click;
             // 
             // openButton
             // 
@@ -392,12 +393,14 @@
             сохранитьToolStripMenuItem.Name = "сохранитьToolStripMenuItem";
             сохранитьToolStripMenuItem.Size = new Size(180, 22);
             сохранитьToolStripMenuItem.Text = "Сохранить";
+            сохранитьToolStripMenuItem.Click += сохранитьToolStripMenuItem_Click;
             // 
             // сохранитьКакToolStripMenuItem
             // 
             сохранитьКакToolStripMenuItem.Name = "сохранитьКакToolStripMenuItem";
             сохранитьКакToolStripMenuItem.Size = new Size(180, 22);
             сохранитьКакToolStripMenuItem.Text = "Сохранить как";
+            сохранитьКакToolStripMenuItem.Click += сохранитьКакToolStripMenuItem_Click;
             // 
             // выходToolStripMenuItem
             // 
@@ -569,7 +572,7 @@
         private Button forwardButton;
         private Button backButton;
         private Button cancelButton;
-        private Button button3;
+        private Button saveButton;
         private Button openButton;
         private Button infoButton;
         private Button button1;

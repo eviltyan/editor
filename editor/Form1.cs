@@ -1,4 +1,5 @@
 using System.Text;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace editor
 {
@@ -7,9 +8,18 @@ namespace editor
         private int newDocumentCounter = 2; // По умолчанию при запуске программы открыт "Документ 1"
         private Dictionary<TabPage, DocumentInfo> documentInfo = new Dictionary<TabPage, DocumentInfo>();
 
+        private Font tabFont;
+        private Dictionary<TabPage, Rectangle> closeButtons = new Dictionary<TabPage, Rectangle>();
+
         public Form1()
         {
             InitializeComponent();
+
+            tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
+            tabControl1.DrawItem += TabControl1_DrawItem;
+            tabControl1.MouseDown += TabControl1_MouseDown;
+
+            tabFont = this.Font;
 
             documentInfo[tabControl1.SelectedTab] = new DocumentInfo
             {
@@ -185,20 +195,10 @@ namespace editor
                 {
                     SaveToFile(currentPage, saveFileDialog.FileName);
 
-                    // Обновляем информацию о документе
                     info.FilePath = saveFileDialog.FileName;
                     info.IsModified = false;
                     currentPage.Text = Path.GetFileName(saveFileDialog.FileName);
                 }
-            }
-        }
-
-        private void SaveAllDocuments()
-        {
-            foreach (TabPage page in tabControl1.TabPages)
-            {
-                tabControl1.SelectedTab = page; // Переключаемся на вкладку
-                saveDocument(); // Сохраняем
             }
         }
 
@@ -216,15 +216,12 @@ namespace editor
                 }
                 else
                 {
-                    // Для txt сохраняем в UTF-8
                     File.WriteAllText(filePath, editBox.Text, Encoding.UTF8);
                 }
 
-                // Обновляем состояние
                 DocumentInfo info = documentInfo[page];
                 info.IsModified = false;
 
-                // Убираем звездочку из названия, если была
                 page.Text = Path.GetFileName(filePath);
             }
             catch (Exception ex)
@@ -247,6 +244,119 @@ namespace editor
         private void сохранитьКакToolStripMenuItem_Click(object sender, EventArgs e)
         {
             saveDocumentAs();
+        }
+
+        private void TabControl1_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            TabPage page = tabControl1.TabPages[e.Index];
+            Rectangle tabRect = tabControl1.GetTabRect(e.Index);
+
+            Brush textBrush = SystemBrushes.ControlText;
+            if (e.State == DrawItemState.Selected)
+            {
+                textBrush = new SolidBrush(Color.Black);
+            }
+
+            string tabText = page.Text;
+            SizeF textSize = e.Graphics.MeasureString(tabText, tabFont);
+            float textX = tabRect.X + 5;
+            float textY = tabRect.Y + (tabRect.Height - textSize.Height) / 2;
+            e.Graphics.DrawString(tabText, tabFont, textBrush, textX, textY);
+
+            int closeSize = 16;
+            int closeX = tabRect.Right - closeSize - 5;
+            int closeY = tabRect.Y + (tabRect.Height - closeSize) / 2;
+            Rectangle closeRect = new Rectangle(closeX, closeY, closeSize, closeSize);
+
+            tabControl1.SizeMode = TabSizeMode.Normal;
+            tabControl1.Padding = new Point(15, 5);
+
+            closeButtons[page] = closeRect;
+
+            using (Pen pen = new Pen(Color.Black, 1))
+            {
+                e.Graphics.DrawLine(pen, closeX + 3, closeY + 3, closeX + closeSize - 3, closeY + closeSize - 3);
+                e.Graphics.DrawLine(pen, closeX + closeSize - 3, closeY + 3, closeX + 3, closeY + closeSize - 3);
+            }
+        }
+
+        private void TabControl1_MouseDown(object sender, MouseEventArgs e)
+        {
+            for (int i = 0; i < tabControl1.TabPages.Count; i++)
+            {
+                TabPage page = tabControl1.TabPages[i];
+
+                if (closeButtons.ContainsKey(page) && closeButtons[page].Contains(e.Location))
+                {
+                    CloseTab(page);
+                    break;
+                }
+            }
+        }
+
+        private void CloseTab(TabPage page)
+        {
+            DocumentInfo info = documentInfo[page];
+
+            if (info.IsModified)
+            {
+                DialogResult result = MessageBox.Show(
+                    $"Сохранить изменения в документе '{info.DisplayName}'?",
+                    "Несохраненные изменения",
+                    MessageBoxButtons.YesNo);
+
+                if (result == DialogResult.Yes)
+                {
+                    tabControl1.SelectedTab = page;
+                    saveDocument();
+                }
+                else if (result == DialogResult.Cancel)
+                {
+                    return;
+                }
+            }
+
+            tabControl1.TabPages.Remove(page);
+            documentInfo.Remove(page);
+            closeButtons.Remove(page);
+        }
+
+        private void выходToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            foreach (TabPage page in tabControl1.TabPages)
+            {
+                if (documentInfo.ContainsKey(page) && documentInfo[page].IsModified)
+                {
+                    tabControl1.SelectedTab = page;
+
+                    DialogResult result = MessageBox.Show(
+                        $"Документ '{documentInfo[page].DisplayName}' имеет несохраненные изменения.\nСохранить перед выходом?",
+                        "Несохраненные изменения",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        saveDocument();
+
+                        if (documentInfo[page].IsModified)
+                        {
+                            e.Cancel = true;
+                            return;
+                        }
+                    }
+                    else if (result == DialogResult.Cancel)
+                    {
+                        e.Cancel = true;
+                        return;
+                    }
+                }
+            }
         }
     }
 }

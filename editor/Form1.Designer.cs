@@ -407,6 +407,7 @@
             выходToolStripMenuItem.Name = "выходToolStripMenuItem";
             выходToolStripMenuItem.Size = new Size(180, 22);
             выходToolStripMenuItem.Text = "Выход";
+            выходToolStripMenuItem.Click += выходToolStripMenuItem_Click;
             // 
             // правкаToolStripMenuItem
             // 
@@ -541,7 +542,8 @@
             MainMenuStrip = menuStrip1;
             MinimumSize = new Size(700, 500);
             Name = "Form1";
-            Text = "Текстовый редактор";
+            Text = "Компилятор";
+            FormClosing += Form1_FormClosing;
             tableLayoutPanel1.ResumeLayout(false);
             tabControl1.ResumeLayout(false);
             tabPage1.ResumeLayout(false);

@@ -47,5 +47,49 @@ namespace editor
         {
             createNewDocument();
         }
+
+        private void openDocument()
+        {
+            if (tabControl1.TabPages.Count == 0) return;
+
+            using (OpenFileDialog openFileDialog = new OpenFileDialog())
+            {
+                openFileDialog.Filter = "All Files|*.*";
+
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    TabPage currentPage = tabControl1.SelectedTab;
+
+                    SplitContainer split = currentPage.Controls[0] as SplitContainer;
+                    RichTextBox editBox = split.Panel1.Controls[0] as RichTextBox;
+
+                    if (openFileDialog.FileName.EndsWith(".rtf"))
+                        editBox.LoadFile(openFileDialog.FileName, RichTextBoxStreamType.RichText);
+                    else
+                    {
+                        using (StreamReader reader = new StreamReader(openFileDialog.FileName, true)) // true = auto-detect encoding
+                        {
+                            editBox.Text = reader.ReadToEnd();
+                        }
+                    }
+
+                    currentPage.Text = Path.GetFileName(openFileDialog.FileName);
+
+                    SplitContainer splitReadOnly = currentPage.Controls[0] as SplitContainer;
+                    RichTextBox readOnlyBox = splitReadOnly.Panel2.Controls[0] as RichTextBox;
+                    readOnlyBox.Clear();
+                }
+            }
+        }
+
+        private void openButton_Click(object sender, EventArgs e)
+        {
+            openDocument();
+        }
+
+        private void открытьToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            openDocument();
+        }
     }
 }

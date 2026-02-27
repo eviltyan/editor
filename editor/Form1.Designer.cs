@@ -43,6 +43,11 @@
             button3 = new Button();
             openButton = new Button();
             createButton = new Button();
+            tabControl1 = new TabControl();
+            tabPage1 = new TabPage();
+            splitContainer1 = new SplitContainer();
+            richTextBoxEdit = new RichTextBox();
+            richTextBoxReadOnly = new RichTextBox();
             menuStrip1 = new MenuStrip();
             файлToolStripMenuItem = new ToolStripMenuItem();
             создатьToolStripMenuItem = new ToolStripMenuItem();
@@ -71,19 +76,14 @@
             вызовСправкиToolStripMenuItem = new ToolStripMenuItem();
             оПрограммеToolStripMenuItem = new ToolStripMenuItem();
             toolTip1 = new ToolTip(components);
-            tabControl1 = new TabControl();
-            tabPage1 = new TabPage();
-            splitContainer1 = new SplitContainer();
-            richTextBox1 = new RichTextBox();
-            richTextBox2 = new RichTextBox();
             tableLayoutPanel1.SuspendLayout();
-            menuStrip1.SuspendLayout();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
             splitContainer1.SuspendLayout();
+            menuStrip1.SuspendLayout();
             SuspendLayout();
             // 
             // tableLayoutPanel1
@@ -280,6 +280,7 @@
             openButton.TabIndex = 3;
             toolTip1.SetToolTip(openButton, "Открыть документ");
             openButton.UseVisualStyleBackColor = true;
+            openButton.Click += openButton_Click;
             // 
             // createButton
             // 
@@ -293,6 +294,68 @@
             createButton.TabIndex = 2;
             toolTip1.SetToolTip(createButton, "Создать новый документ");
             createButton.UseVisualStyleBackColor = true;
+            createButton.Click += createButton_Click;
+            // 
+            // tabControl1
+            // 
+            tableLayoutPanel1.SetColumnSpan(tabControl1, 13);
+            tabControl1.Controls.Add(tabPage1);
+            tabControl1.Dock = DockStyle.Fill;
+            tabControl1.Location = new Point(3, 48);
+            tabControl1.Name = "tabControl1";
+            tabControl1.SelectedIndex = 0;
+            tabControl1.Size = new Size(794, 486);
+            tabControl1.TabIndex = 15;
+            // 
+            // tabPage1
+            // 
+            tabPage1.Controls.Add(splitContainer1);
+            tabPage1.Location = new Point(4, 24);
+            tabPage1.Name = "tabPage1";
+            tabPage1.Padding = new Padding(3);
+            tabPage1.Size = new Size(786, 458);
+            tabPage1.TabIndex = 0;
+            tabPage1.Text = "Документ 1";
+            tabPage1.UseVisualStyleBackColor = true;
+            // 
+            // splitContainer1
+            // 
+            splitContainer1.Dock = DockStyle.Fill;
+            splitContainer1.Location = new Point(3, 3);
+            splitContainer1.Name = "splitContainer1";
+            splitContainer1.Orientation = Orientation.Horizontal;
+            // 
+            // splitContainer1.Panel1
+            // 
+            splitContainer1.Panel1.Controls.Add(richTextBoxEdit);
+            // 
+            // splitContainer1.Panel2
+            // 
+            splitContainer1.Panel2.Controls.Add(richTextBoxReadOnly);
+            splitContainer1.Size = new Size(780, 452);
+            splitContainer1.SplitterDistance = 240;
+            splitContainer1.TabIndex = 0;
+            // 
+            // richTextBoxEdit
+            // 
+            richTextBoxEdit.Dock = DockStyle.Fill;
+            richTextBoxEdit.Location = new Point(0, 0);
+            richTextBoxEdit.Name = "richTextBoxEdit";
+            richTextBoxEdit.Size = new Size(780, 240);
+            richTextBoxEdit.TabIndex = 0;
+            richTextBoxEdit.Text = "";
+            // 
+            // richTextBoxReadOnly
+            // 
+            richTextBoxReadOnly.BackColor = SystemColors.Window;
+            richTextBoxReadOnly.Dock = DockStyle.Fill;
+            richTextBoxReadOnly.Location = new Point(0, 0);
+            richTextBoxReadOnly.Name = "richTextBoxReadOnly";
+            richTextBoxReadOnly.ReadOnly = true;
+            richTextBoxReadOnly.Size = new Size(780, 208);
+            richTextBoxReadOnly.TabIndex = 0;
+            richTextBoxReadOnly.TabStop = false;
+            richTextBoxReadOnly.Text = "";
             // 
             // menuStrip1
             // 
@@ -315,6 +378,7 @@
             создатьToolStripMenuItem.Name = "создатьToolStripMenuItem";
             создатьToolStripMenuItem.Size = new Size(154, 22);
             создатьToolStripMenuItem.Text = "Создать";
+            создатьToolStripMenuItem.Click += создатьToolStripMenuItem_Click;
             // 
             // открытьToolStripMenuItem
             // 
@@ -463,67 +527,6 @@
             оПрограммеToolStripMenuItem.Size = new Size(156, 22);
             оПрограммеToolStripMenuItem.Text = "О программе";
             // 
-            // tabControl1
-            // 
-            tableLayoutPanel1.SetColumnSpan(tabControl1, 13);
-            tabControl1.Controls.Add(tabPage1);
-            tabControl1.Dock = DockStyle.Fill;
-            tabControl1.Location = new Point(3, 48);
-            tabControl1.Name = "tabControl1";
-            tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new Size(794, 486);
-            tabControl1.TabIndex = 15;
-            // 
-            // tabPage1
-            // 
-            tabPage1.Controls.Add(splitContainer1);
-            tabPage1.Location = new Point(4, 24);
-            tabPage1.Name = "tabPage1";
-            tabPage1.Padding = new Padding(3);
-            tabPage1.Size = new Size(786, 458);
-            tabPage1.TabIndex = 0;
-            tabPage1.Text = "Новый документ";
-            tabPage1.UseVisualStyleBackColor = true;
-            // 
-            // splitContainer1
-            // 
-            splitContainer1.Dock = DockStyle.Fill;
-            splitContainer1.Location = new Point(3, 3);
-            splitContainer1.Name = "splitContainer1";
-            splitContainer1.Orientation = Orientation.Horizontal;
-            // 
-            // splitContainer1.Panel1
-            // 
-            splitContainer1.Panel1.Controls.Add(richTextBox1);
-            // 
-            // splitContainer1.Panel2
-            // 
-            splitContainer1.Panel2.Controls.Add(richTextBox2);
-            splitContainer1.Size = new Size(780, 452);
-            splitContainer1.SplitterDistance = 240;
-            splitContainer1.TabIndex = 0;
-            // 
-            // richTextBox1
-            // 
-            richTextBox1.Dock = DockStyle.Fill;
-            richTextBox1.Location = new Point(0, 0);
-            richTextBox1.Name = "richTextBox1";
-            richTextBox1.Size = new Size(780, 240);
-            richTextBox1.TabIndex = 0;
-            richTextBox1.Text = "";
-            // 
-            // richTextBox2
-            // 
-            richTextBox2.BackColor = SystemColors.Window;
-            richTextBox2.Dock = DockStyle.Fill;
-            richTextBox2.Location = new Point(0, 0);
-            richTextBox2.Name = "richTextBox2";
-            richTextBox2.ReadOnly = true;
-            richTextBox2.Size = new Size(780, 208);
-            richTextBox2.TabIndex = 0;
-            richTextBox2.TabStop = false;
-            richTextBox2.Text = "";
-            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -536,14 +539,14 @@
             Name = "Form1";
             Text = "Текстовый редактор";
             tableLayoutPanel1.ResumeLayout(false);
-            menuStrip1.ResumeLayout(false);
-            menuStrip1.PerformLayout();
             tabControl1.ResumeLayout(false);
             tabPage1.ResumeLayout(false);
             splitContainer1.Panel1.ResumeLayout(false);
             splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
             splitContainer1.ResumeLayout(false);
+            menuStrip1.ResumeLayout(false);
+            menuStrip1.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -594,7 +597,7 @@
         private TabControl tabControl1;
         private TabPage tabPage1;
         private SplitContainer splitContainer1;
-        private RichTextBox richTextBox1;
-        private RichTextBox richTextBox2;
+        private RichTextBox richTextBoxEdit;
+        private RichTextBox richTextBoxReadOnly;
     }
 }

@@ -19,11 +19,18 @@ namespace editor
             {
                 string url = "https://github.com/eviltyan/editor";
                 richTextBox1.Text = "https://github.com/eviltyan/editor";
-                Process.Start(new ProcessStartInfo
+                try
                 {
-                    FileName = url,
-                    UseShellExecute = true
-                });
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = url,
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception e)
+                {
+
+                }
             }
             else
             {

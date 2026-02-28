@@ -719,5 +719,29 @@ namespace editor
         {
             UpdateUndoRedoButtons();
         }
+
+        private void вызовСправкиToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            InfoForm info = new InfoForm("Справка");
+            info.Show();
+        }
+
+        private void infoButton_Click(object sender, EventArgs e)
+        {
+            InfoForm info = new InfoForm("Справка");
+            info.Show();
+        }
+
+        private void оПрограммеToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            InfoForm info = new InfoForm("О программе");
+            info.Show();
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            InfoForm info = new InfoForm("О программе");
+            info.Show();
+        }
     }
 }

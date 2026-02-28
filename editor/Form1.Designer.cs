@@ -150,6 +150,7 @@
             button1.TabIndex = 13;
             toolTip1.SetToolTip(button1, "О программе");
             button1.UseVisualStyleBackColor = true;
+            button1.Click += button1_Click;
             // 
             // infoButton
             // 
@@ -163,6 +164,7 @@
             infoButton.TabIndex = 12;
             toolTip1.SetToolTip(infoButton, "Вызов справки");
             infoButton.UseVisualStyleBackColor = true;
+            infoButton.Click += infoButton_Click;
             // 
             // startButton
             // 
@@ -539,14 +541,16 @@
             // вызовСправкиToolStripMenuItem
             // 
             вызовСправкиToolStripMenuItem.Name = "вызовСправкиToolStripMenuItem";
-            вызовСправкиToolStripMenuItem.Size = new Size(156, 22);
+            вызовСправкиToolStripMenuItem.Size = new Size(180, 22);
             вызовСправкиToolStripMenuItem.Text = "Вызов справки";
+            вызовСправкиToolStripMenuItem.Click += вызовСправкиToolStripMenuItem_Click;
             // 
             // оПрограммеToolStripMenuItem
             // 
             оПрограммеToolStripMenuItem.Name = "оПрограммеToolStripMenuItem";
-            оПрограммеToolStripMenuItem.Size = new Size(156, 22);
+            оПрограммеToolStripMenuItem.Size = new Size(180, 22);
             оПрограммеToolStripMenuItem.Text = "О программе";
+            оПрограммеToolStripMenuItem.Click += оПрограммеToolStripMenuItem_Click;
             // 
             // Form1
             // 

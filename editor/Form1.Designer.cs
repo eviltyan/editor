@@ -176,6 +176,7 @@
             startButton.TabIndex = 11;
             toolTip1.SetToolTip(startButton, "Пуск");
             startButton.UseVisualStyleBackColor = true;
+            startButton.Click += startButton_Click;
             // 
             // pasteButton
             // 
@@ -231,6 +232,7 @@
             forwardButton.TabIndex = 7;
             toolTip1.SetToolTip(forwardButton, "Вернуть изменение");
             forwardButton.UseVisualStyleBackColor = true;
+            forwardButton.Click += forwardButton_Click;
             // 
             // backButton
             // 
@@ -244,6 +246,7 @@
             backButton.TabIndex = 6;
             toolTip1.SetToolTip(backButton, "Отменить изменение");
             backButton.UseVisualStyleBackColor = true;
+            backButton.Click += backButton_Click;
             // 
             // cancelButton
             // 
@@ -257,6 +260,7 @@
             cancelButton.TabIndex = 5;
             toolTip1.SetToolTip(cancelButton, "Отменить все изменения");
             cancelButton.UseVisualStyleBackColor = true;
+            cancelButton.Click += cancelButton_Click;
             // 
             // saveButton
             // 
@@ -310,6 +314,7 @@
             tabControl1.SelectedIndex = 0;
             tabControl1.Size = new Size(794, 486);
             tabControl1.TabIndex = 15;
+            tabControl1.SelectedIndexChanged += tabControl1_SelectedIndexChanged;
             // 
             // tabPage1
             // 
@@ -348,6 +353,7 @@
             richTextBoxEdit.Size = new Size(780, 240);
             richTextBoxEdit.TabIndex = 0;
             richTextBoxEdit.Text = "";
+            richTextBoxEdit.TextChanged += RichTextBox_TextChanged;
             // 
             // richTextBoxReadOnly
             // 
@@ -424,12 +430,14 @@
             отменитьToolStripMenuItem.Name = "отменитьToolStripMenuItem";
             отменитьToolStripMenuItem.Size = new Size(212, 22);
             отменитьToolStripMenuItem.Text = "Отменить";
+            отменитьToolStripMenuItem.Click += отменитьToolStripMenuItem_Click;
             // 
             // вернутьToolStripMenuItem
             // 
             вернутьToolStripMenuItem.Name = "вернутьToolStripMenuItem";
             вернутьToolStripMenuItem.Size = new Size(212, 22);
             вернутьToolStripMenuItem.Text = "Вернуть";
+            вернутьToolStripMenuItem.Click += вернутьToolStripMenuItem_Click;
             // 
             // вырезатьToolStripMenuItem
             // 
@@ -457,6 +465,7 @@
             отменитьВсеИзмененияToolStripMenuItem.Name = "отменитьВсеИзмененияToolStripMenuItem";
             отменитьВсеИзмененияToolStripMenuItem.Size = new Size(212, 22);
             отменитьВсеИзмененияToolStripMenuItem.Text = "Отменить все изменения";
+            отменитьВсеИзмененияToolStripMenuItem.Click += отменитьВсеИзмененияToolStripMenuItem_Click;
             // 
             // выделитьВсёToolStripMenuItem
             // 

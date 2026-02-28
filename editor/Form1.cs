@@ -21,20 +21,18 @@ namespace editor
 
             tabFont = this.Font;
 
-            documentInfo[tabControl1.SelectedTab] = new DocumentInfo
+            DocumentInfo info = new DocumentInfo
             {
                 FilePath = null,
                 IsModified = false,
+                IsSaved = false,
                 OriginalTabName = "Документ 1"
             };
 
             RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
-            editBox.TextChanged += (s, e) =>
-            {
-                documentInfo[tabControl1.SelectedTab].IsModified = true;
-                if (!tabControl1.SelectedTab.Text.EndsWith("*"))
-                    tabControl1.SelectedTab.Text += "*";
-            };
+
+            info.History.AddState(new TextState(editBox.Text, editBox.SelectionStart, editBox.SelectionLength));
+            documentInfo[tabControl1.SelectedTab] = info;
         }
 
         private void createNewDocument()
@@ -62,30 +60,212 @@ namespace editor
             splitContainer.Panel2.Controls.Add(richTextBoxReadOnly);
             newPage.Controls.Add(splitContainer);
 
-            documentInfo[newPage] = new DocumentInfo
+            DocumentInfo info = new DocumentInfo
             {
                 FilePath = null,
                 IsModified = false,
+                IsSaved = false,
                 OriginalTabName = tabName
             };
 
             RichTextBox editBox = GetEditRichTextBox(newPage);
-            editBox.TextChanged += (s, e) =>
-            {
-                documentInfo[newPage].IsModified = true;
-                if (!newPage.Text.EndsWith("*"))
-                    newPage.Text += "*";
-            };
+            editBox.TextChanged += RichTextBox_TextChanged;
+
+            info.History.AddState(new TextState(editBox.Text, editBox.SelectionStart, editBox.SelectionLength));
+            documentInfo[newPage] = info;
 
             tabControl1.TabPages.Add(newPage);
 
             tabControl1.SelectedTab = newPage;
+
+            UpdateUndoRedoButtons();
         }
 
         private RichTextBox GetEditRichTextBox(TabPage page)
         {
             SplitContainer split = page.Controls[0] as SplitContainer;
             return split.Panel1.Controls[0] as RichTextBox;
+        }
+
+        private void AddTextState(RichTextBox editBox, TabPage page)
+        {
+            DocumentInfo info = documentInfo[page];
+            info.History.AddState(new TextState(editBox.Text, editBox.SelectionStart, editBox.SelectionLength));
+            UpdateUndoRedoButtons();
+        }
+
+        private void Undo()
+        {
+            if (tabControl1.TabPages.Count == 0) return;
+
+            TabPage currentPage = tabControl1.SelectedTab;
+            DocumentInfo info = documentInfo[currentPage];
+
+            if (info.History.CanUndo)
+            {
+                RichTextBox editBox = GetEditRichTextBox(currentPage);
+
+                editBox.TextChanged -= RichTextBox_TextChanged;
+
+                TextState previousState = info.History.Undo();
+                if (previousState != null)
+                {
+                    editBox.Text = previousState.Text;
+                    editBox.SelectionStart = previousState.SelectionStart;
+                    editBox.SelectionLength = previousState.SelectionLength;
+                }
+
+                editBox.TextChanged += RichTextBox_TextChanged;
+
+                UpdateModifiedState(currentPage);
+                UpdateUndoRedoButtons();
+            }
+        }
+
+        private void Redo()
+        {
+            if (tabControl1.TabPages.Count == 0) return;
+
+            TabPage currentPage = tabControl1.SelectedTab;
+            DocumentInfo info = documentInfo[currentPage];
+
+            if (info.History.CanRedo)
+            {
+                RichTextBox editBox = GetEditRichTextBox(currentPage);
+
+                editBox.TextChanged -= RichTextBox_TextChanged;
+
+                TextState nextState = info.History.Redo();
+                if (nextState != null)
+                {
+                    editBox.Text = nextState.Text;
+                    editBox.SelectionStart = nextState.SelectionStart;
+                    editBox.SelectionLength = nextState.SelectionLength;
+                }
+
+                editBox.TextChanged += RichTextBox_TextChanged;
+
+                UpdateModifiedState(currentPage);
+                UpdateUndoRedoButtons();
+            }
+        }
+
+        private void UndoAll()
+        {
+            if (tabControl1.TabPages.Count == 0) return;
+
+            TabPage currentPage = tabControl1.SelectedTab;
+            DocumentInfo info = documentInfo[currentPage];
+
+            DialogResult result = MessageBox.Show(
+                "Отменить все изменения? Это действие нельзя будет отменить.",
+                "Отмена всех изменений",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+
+            if (result == DialogResult.Yes)
+            {
+                RichTextBox editBox = GetEditRichTextBox(currentPage);
+
+                editBox.TextChanged -= RichTextBox_TextChanged;
+
+                TextState firstState = info.History.UndoAll();
+                if (firstState != null)
+                {
+                    editBox.Text = firstState.Text;
+                    editBox.SelectionStart = firstState.SelectionStart;
+                    editBox.SelectionLength = firstState.SelectionLength;
+                }
+
+                editBox.TextChanged += RichTextBox_TextChanged;
+
+                UpdateModifiedState(currentPage);
+                UpdateUndoRedoButtons();
+            }
+        }
+
+        private void RichTextBox_TextChanged(object sender, EventArgs e)
+        {
+            if (tabControl1.TabPages.Count == 0) return;
+
+            RichTextBox editBox = sender as RichTextBox;
+            TabPage currentPage = tabControl1.SelectedTab;
+            DocumentInfo info = documentInfo[currentPage];
+
+            AddTextState(editBox, currentPage);
+
+            if (!info.IsModified && !currentPage.Text.EndsWith("*"))
+            {
+                currentPage.Text += "*";
+                info.IsModified = true;
+            }
+
+            UpdateUndoRedoButtons();
+        }
+
+        private void UpdateUndoRedoButtons()
+        {
+            if (tabControl1.TabPages.Count == 0)
+            {
+                backButton.Enabled = false;
+                forwardButton.Enabled = false;
+                cancelButton.Enabled = false;
+
+                if (отменитьToolStripMenuItem != null) отменитьToolStripMenuItem.Enabled = false;
+                if (вернутьToolStripMenuItem != null) вернутьToolStripMenuItem.Enabled = false;
+                if (отменитьВсеИзмененияToolStripMenuItem != null) отменитьВсеИзмененияToolStripMenuItem.Enabled = false;
+                return;
+            }
+
+            TabPage currentPage = tabControl1.SelectedTab;
+            DocumentInfo info = documentInfo[currentPage];
+
+            if (info.IsSaved)
+            {
+                info.History.CanUndo = false;
+                info.History.CanRedo = false;
+            }
+
+            bool canUndo = info.History.CanUndo;
+            bool canRedo = info.History.CanRedo;
+            bool canUndoAll = (info.History.GetCurrentState() != null); //&&
+                                                                        // info.History.GetCurrentState() != info.History.UndoAll()); // Есть изменения
+
+            if (info.IsSaved)
+            {
+                canUndoAll = false;
+            }
+
+            backButton.Enabled = canUndo;
+            forwardButton.Enabled = canRedo;
+            cancelButton.Enabled = canUndoAll;
+
+            if (отменитьToolStripMenuItem != null) отменитьToolStripMenuItem.Enabled = canUndo;
+            if (вернутьToolStripMenuItem != null) вернутьToolStripMenuItem.Enabled = canRedo;
+            if (отменитьВсеИзмененияToolStripMenuItem != null) отменитьВсеИзмененияToolStripMenuItem.Enabled = canUndoAll;
+        }
+
+        private void UpdateModifiedState(TabPage page)
+        {
+            DocumentInfo info = documentInfo[page];
+            RichTextBox editBox = GetEditRichTextBox(page);
+
+            TextState currentState = info.History.GetCurrentState();
+            bool isModified = (currentState != null && editBox.Text != currentState.Text) || info.IsSaved == false;
+
+            if (info.IsModified != isModified)
+            {
+                info.IsModified = isModified;
+
+                if (isModified && !page.Text.EndsWith("*"))
+                {
+                    page.Text += "*";
+                }
+                else if (!isModified && page.Text.EndsWith("*"))
+                {
+                    page.Text = page.Text.TrimEnd('*');
+                }
+            }
         }
 
         private void createButton_Click(object sender, EventArgs e)
@@ -130,7 +310,11 @@ namespace editor
                         DocumentInfo info = documentInfo[currentPage];
                         info.FilePath = filePath;
                         info.IsModified = false;
+                        info.IsSaved = true;
                         currentPage.Text = Path.GetFileName(filePath);
+
+                        info.History.AddState(new TextState(editBox.Text, editBox.SelectionStart, editBox.SelectionLength));
+                        documentInfo[tabControl1.SelectedTab] = info;
                     }
                     catch (Exception ex)
                     {
@@ -176,6 +360,7 @@ namespace editor
             {
                 SaveToFile(currentPage, info.FilePath);
             }
+            UpdateUndoRedoButtons();
         }
 
         private void saveDocumentAs()
@@ -197,8 +382,10 @@ namespace editor
 
                     info.FilePath = saveFileDialog.FileName;
                     info.IsModified = false;
+                    info.IsSaved = true;
                     currentPage.Text = Path.GetFileName(saveFileDialog.FileName);
                 }
+                UpdateUndoRedoButtons();
             }
         }
 
@@ -221,8 +408,16 @@ namespace editor
 
                 DocumentInfo info = documentInfo[page];
                 info.IsModified = false;
+                info.IsSaved = true;
+
+                info.History.Clear();
+                info.History.AddState(new TextState(editBox.Text, 0, 0));
+
+                info.FilePath = filePath;
 
                 page.Text = Path.GetFileName(filePath);
+
+                UpdateUndoRedoButtons();
             }
             catch (Exception ex)
             {
@@ -481,6 +676,48 @@ namespace editor
             }
 
             return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+
+
+        private void startButton_Click(object sender, EventArgs e)
+        {
+            // Будет реализовано позже
+        }
+
+        private void отменитьToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Undo();
+        }
+
+        private void вернутьToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Redo();
+        }
+
+        private void backButton_Click(object sender, EventArgs e)
+        {
+            Undo();
+        }
+
+        private void forwardButton_Click(object sender, EventArgs e)
+        {
+            Redo();
+        }
+
+        private void cancelButton_Click(object sender, EventArgs e)
+        {
+            UndoAll();
+        }
+
+        private void отменитьВсеИзмененияToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            UndoAll();
+        }
+
+        private void tabControl1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateUndoRedoButtons();
         }
     }
 }

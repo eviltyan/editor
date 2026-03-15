@@ -47,7 +47,7 @@
             tabPage1 = new TabPage();
             splitContainer1 = new SplitContainer();
             richTextBoxEdit = new RichTextBox();
-            richTextBoxReadOnly = new RichTextBox();
+            dataGridView = new DataGridView();
             menuStrip1 = new MenuStrip();
             файлToolStripMenuItem = new ToolStripMenuItem();
             создатьToolStripMenuItem = new ToolStripMenuItem();
@@ -83,6 +83,7 @@
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
             splitContainer1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dataGridView).BeginInit();
             menuStrip1.SuspendLayout();
             SuspendLayout();
             // 
@@ -342,7 +343,7 @@
             // 
             // splitContainer1.Panel2
             // 
-            splitContainer1.Panel2.Controls.Add(richTextBoxReadOnly);
+            splitContainer1.Panel2.Controls.Add(dataGridView);
             splitContainer1.Size = new Size(780, 452);
             splitContainer1.SplitterDistance = 240;
             splitContainer1.TabIndex = 0;
@@ -357,17 +358,17 @@
             richTextBoxEdit.Text = "";
             richTextBoxEdit.TextChanged += RichTextBox_TextChanged;
             // 
-            // richTextBoxReadOnly
+            // dataGridView
             // 
-            richTextBoxReadOnly.BackColor = SystemColors.Window;
-            richTextBoxReadOnly.Dock = DockStyle.Fill;
-            richTextBoxReadOnly.Location = new Point(0, 0);
-            richTextBoxReadOnly.Name = "richTextBoxReadOnly";
-            richTextBoxReadOnly.ReadOnly = true;
-            richTextBoxReadOnly.Size = new Size(780, 208);
-            richTextBoxReadOnly.TabIndex = 0;
-            richTextBoxReadOnly.TabStop = false;
-            richTextBoxReadOnly.Text = "";
+            dataGridView.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridView.Dock = DockStyle.Fill;
+            dataGridView.Location = new Point(0, 0);
+            dataGridView.Name = "dataGridView";
+            dataGridView.ReadOnly = true;
+            dataGridView.RowHeadersWidth = 70;
+            dataGridView.Size = new Size(780, 208);
+            dataGridView.TabIndex = 0;
+            dataGridView.CellClick += ResultGridView_CellClick;
             // 
             // menuStrip1
             // 
@@ -530,6 +531,7 @@
             пускToolStripMenuItem.Name = "пускToolStripMenuItem";
             пускToolStripMenuItem.Size = new Size(46, 20);
             пускToolStripMenuItem.Text = "Пуск";
+            пускToolStripMenuItem.Click += пускToolStripMenuItem_Click;
             // 
             // справкаToolStripMenuItem
             // 
@@ -541,14 +543,14 @@
             // вызовСправкиToolStripMenuItem
             // 
             вызовСправкиToolStripMenuItem.Name = "вызовСправкиToolStripMenuItem";
-            вызовСправкиToolStripMenuItem.Size = new Size(180, 22);
+            вызовСправкиToolStripMenuItem.Size = new Size(156, 22);
             вызовСправкиToolStripMenuItem.Text = "Вызов справки";
             вызовСправкиToolStripMenuItem.Click += вызовСправкиToolStripMenuItem_Click;
             // 
             // оПрограммеToolStripMenuItem
             // 
             оПрограммеToolStripMenuItem.Name = "оПрограммеToolStripMenuItem";
-            оПрограммеToolStripMenuItem.Size = new Size(180, 22);
+            оПрограммеToolStripMenuItem.Size = new Size(156, 22);
             оПрограммеToolStripMenuItem.Text = "О программе";
             оПрограммеToolStripMenuItem.Click += оПрограммеToolStripMenuItem_Click;
             // 
@@ -571,6 +573,7 @@
             splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
             splitContainer1.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)dataGridView).EndInit();
             menuStrip1.ResumeLayout(false);
             menuStrip1.PerformLayout();
             ResumeLayout(false);
@@ -624,6 +627,6 @@
         private TabPage tabPage1;
         private SplitContainer splitContainer1;
         private RichTextBox richTextBoxEdit;
-        private RichTextBox richTextBoxReadOnly;
+        private DataGridView dataGridView;
     }
 }

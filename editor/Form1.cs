@@ -11,9 +11,13 @@ namespace editor
         private Font tabFont;
         private Dictionary<TabPage, Rectangle> closeButtons = new Dictionary<TabPage, Rectangle>();
 
+        private LexicalAnalyzer analyzer;
+
         public Form1()
         {
             InitializeComponent();
+
+            analyzer = new LexicalAnalyzer();
 
             tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
             tabControl1.DrawItem += TabControl1_DrawItem;
@@ -33,6 +37,24 @@ namespace editor
 
             info.History.AddState(new TextState(editBox.Text, editBox.SelectionStart, editBox.SelectionLength));
             documentInfo[tabControl1.SelectedTab] = info;
+
+            this.StartPosition = FormStartPosition.CenterScreen;
+
+            dataGridView.AllowUserToAddRows = false;
+            dataGridView.AllowUserToDeleteRows = false;
+            dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+
+            dataGridView.Columns.Add("Code", "Условный код");
+            dataGridView.Columns.Add("Type", "Тип лексемы");
+            dataGridView.Columns["Type"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dataGridView.Columns.Add("Value", "Лексема");
+            dataGridView.Columns.Add("Location", "Местоположение");
+            dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dataGridView.Columns.Add("IsError", "Ошибка");
+            dataGridView.Columns.Add("ErrorMessage", "Сообщение об ошибке");
+
+            dataGridView.Columns["IsError"].Visible = false;
+            dataGridView.Columns["ErrorMessage"].Visible = false;
         }
 
         private void createNewDocument()
@@ -50,14 +72,28 @@ namespace editor
             richTextBoxEdit.Dock = DockStyle.Fill;
             richTextBoxEdit.AcceptsTab = true;
 
-            RichTextBox richTextBoxReadOnly = new RichTextBox();
-            richTextBoxReadOnly.Dock = DockStyle.Fill;
-            richTextBoxReadOnly.ReadOnly = true;
-            richTextBoxReadOnly.BackColor = Color.White;
-            richTextBoxReadOnly.TabStop = false;
+            DataGridView dataGridView = new DataGridView();
+            dataGridView.Dock = DockStyle.Fill;
+            dataGridView.AllowUserToAddRows = false;
+            dataGridView.AllowUserToDeleteRows = false;
+            dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+
+            dataGridView.Columns.Add("Code", "Условный код");
+            dataGridView.Columns.Add("Type", "Тип лексемы");
+            dataGridView.Columns["Type"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dataGridView.Columns.Add("Value", "Лексема");
+            dataGridView.Columns.Add("Location", "Местоположение");
+            dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dataGridView.Columns.Add("IsError", "Ошибка");
+            dataGridView.Columns.Add("ErrorMessage", "Сообщение об ошибке");
+
+            dataGridView.Columns["IsError"].Visible = false;
+            dataGridView.Columns["ErrorMessage"].Visible = false;
+
+            dataGridView.CellClick += ResultGridView_CellClick;
 
             splitContainer.Panel1.Controls.Add(richTextBoxEdit);
-            splitContainer.Panel2.Controls.Add(richTextBoxReadOnly);
+            splitContainer.Panel2.Controls.Add(dataGridView);
             newPage.Controls.Add(splitContainer);
 
             DocumentInfo info = new DocumentInfo
@@ -324,8 +360,8 @@ namespace editor
                     }
 
                     SplitContainer splitReadOnly = currentPage.Controls[0] as SplitContainer;
-                    RichTextBox readOnlyBox = splitReadOnly.Panel2.Controls[0] as RichTextBox;
-                    readOnlyBox.Clear();
+                    DataGridView dataGridView = splitReadOnly.Panel2.Controls[0] as DataGridView;
+                    dataGridView.Rows.Clear();
                 }
                 else
                 {
@@ -644,14 +680,12 @@ namespace editor
             RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
             if (editBox == null) return base.ProcessCmdKey(ref msg, keyData);
 
-            // Ctrl+A - Выделить всё
             if (keyData == (Keys.Control | Keys.A))
             {
                 editBox.SelectAll();
                 return true;
             }
 
-            // Ctrl+C - Копировать
             if (keyData == (Keys.Control | Keys.C))
             {
                 if (editBox.SelectionLength > 0)
@@ -659,7 +693,6 @@ namespace editor
                 return true;
             }
 
-            // Ctrl+X - Вырезать
             if (keyData == (Keys.Control | Keys.X))
             {
                 if (editBox.SelectionLength > 0)
@@ -667,7 +700,6 @@ namespace editor
                 return true;
             }
 
-            // Ctrl+V - Вставить
             if (keyData == (Keys.Control | Keys.V))
             {
                 if (Clipboard.ContainsText())
@@ -682,7 +714,11 @@ namespace editor
 
         private void startButton_Click(object sender, EventArgs e)
         {
-            // Будет реализовано позже
+            StartAnalysis();
+        }
+        private void пускToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            StartAnalysis();
         }
 
         private void отменитьToolStripMenuItem_Click(object sender, EventArgs e)
@@ -742,6 +778,106 @@ namespace editor
         {
             InfoForm info = new InfoForm("О программе");
             info.Show();
+        }
+
+        private void StartAnalysis()
+        {
+            try
+            {
+                SplitContainer splitReadOnly = tabControl1.SelectedTab.Controls[0] as SplitContainer;
+                DataGridView dataGridView = splitReadOnly.Panel2.Controls[0] as DataGridView;
+
+                RichTextBox richTextBox = GetEditRichTextBox(tabControl1.SelectedTab);
+                richTextBox.SelectionStart = richTextBox.Text.Length;
+                richTextBox.ScrollToCaret();
+                string input = richTextBox.Text;
+                var tokens = analyzer.Analyze(input);
+
+                dataGridView.Rows.Clear();
+                dataGridView.Columns["IsError"].Visible = false;
+                dataGridView.Columns["ErrorMessage"].Visible = false;
+
+                foreach (var token in tokens)
+                {
+                    int rowIndex = dataGridView.Rows.Add(
+                        token.Code,
+                        token.Type,
+                        token.Value,
+                        token.Location,
+                        token.IsError,
+                        token.ErrorMessage
+                    );
+
+                    if (token.IsError)
+                    {
+                        dataGridView.Rows[rowIndex].DefaultCellStyle.BackColor = Color.LightCoral;
+                        dataGridView.Columns["IsError"].Visible = true;
+                        dataGridView.Columns["ErrorMessage"].Visible = true;
+                        dataGridView.Columns["ErrorMessage"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                    }
+                }
+
+                if (tokens.Count == 0)
+                {
+                    MessageBox.Show("Нет лексем для анализа.", "Информация",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при анализе: {ex.Message}", "Ошибка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ResultGridView_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0)
+            {
+                SplitContainer splitReadOnly = tabControl1.SelectedTab.Controls[0] as SplitContainer;
+                DataGridView dataGridView = splitReadOnly.Panel2.Controls[0] as DataGridView;
+
+                var row = dataGridView.Rows[e.RowIndex];
+
+                string location = row.Cells["Location"].Value?.ToString();
+                if (!string.IsNullOrEmpty(location))
+                {
+                    var parts = location.Replace("строка ", "").Split(',');
+                    if (parts.Length == 2)
+                    {
+                        if (int.TryParse(parts[0], out int line))
+                        {
+                            var positions = parts[1].Trim().Split('-');
+                            if (positions.Length == 2 && int.TryParse(positions[0], out int startPos))
+                            {
+                                NavigateToPosition(line, startPos);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void NavigateToPosition(int line, int position)
+        {
+            RichTextBox richTextBox = GetEditRichTextBox(tabControl1.SelectedTab);
+            string[] lines = richTextBox.Lines;
+            if (line <= lines.Length)
+            {
+                int charIndex = 0;
+                for (int i = 0; i < line - 1; i++)
+                {
+                    charIndex += lines[i].Length;
+                }
+                charIndex += position + (1 * line - 2);
+
+                if (charIndex >= 0 && charIndex <= richTextBox.TextLength)
+                {
+                    richTextBox.Focus();
+                    richTextBox.Select(charIndex, 1);
+                    richTextBox.ScrollToCaret();
+                }
+            }
         }
     }
 }

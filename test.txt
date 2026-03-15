@@ -1,0 +1,13 @@
+﻿languages <- c("Swift", "Java", "R");
+numbers <- c(1, 2, 3, 4, 5);
+numbers <- 1:5;
+y <- 2:-2;
+numbers <- rep(c(2,4,6), times = 2);
+numbers <- rep(c(2,4,6), each = 2);
+repeat_indepent <- rep(c(1,2,3), times = c(5,2,1));
+recursive_vector <- list(element_1, element_2, element_N);
+sum <- numbers_1 + numbers_2;
+x <- c(1, 5.4, TRUE, "hello");
+x <- c("first"=3, "second"=0, "third"=9);
+x <- NULL;
+numbers <- seq(from = 0, to = 100, by = 20);

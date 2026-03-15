@@ -23,9 +23,13 @@
 
 ### Корректные входные строки:
 vec <- c("Swift", TRUE, 1, 2.5, 'hello');
+
 numbers <- 1:5;
+
 x <- c("first"=3, "second"=0, "third"=9);
+
 sum <- numbers_1 + numbers_2;
+
 x <- NULL;
 
 ### Перечень допустимых лексем:

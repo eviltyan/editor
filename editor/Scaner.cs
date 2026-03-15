@@ -443,30 +443,6 @@ namespace editor
                         pos--;
                         break;
 
-                    case State.Quote:
-                        if (c != '\'' && c != '"')
-                        {
-                            currentToken.Append(c);
-                        }
-                        else
-                        {
-                            currentToken.Append(c);
-
-                            tokens.Add(new Token
-                            {
-                                Code = 6,
-                                Type = "тип данных character",
-                                Value = currentToken.ToString(),
-                                Line = tokenStartLine,
-                                StartPos = tokenStartPos,
-                                EndPos = pos
-                            });
-
-                            currentState = State.Start;
-                            currentToken.Clear();
-                        }
-                        break;
-
                     case State.CharStart:
                         if (c == '"')
                         {

@@ -489,42 +489,49 @@
             постановкаЗадачиToolStripMenuItem.Name = "постановкаЗадачиToolStripMenuItem";
             постановкаЗадачиToolStripMenuItem.Size = new Size(231, 22);
             постановкаЗадачиToolStripMenuItem.Text = "Постановка задачи";
+            постановкаЗадачиToolStripMenuItem.Click += постановкаЗадачиToolStripMenuItem_Click;
             // 
             // грамматикаToolStripMenuItem
             // 
             грамматикаToolStripMenuItem.Name = "грамматикаToolStripMenuItem";
             грамматикаToolStripMenuItem.Size = new Size(231, 22);
             грамматикаToolStripMenuItem.Text = "Грамматика";
+            грамматикаToolStripMenuItem.Click += грамматикаToolStripMenuItem_Click;
             // 
             // классификацияГрамматикиToolStripMenuItem
             // 
             классификацияГрамматикиToolStripMenuItem.Name = "классификацияГрамматикиToolStripMenuItem";
             классификацияГрамматикиToolStripMenuItem.Size = new Size(231, 22);
             классификацияГрамматикиToolStripMenuItem.Text = "Классификация грамматики";
+            классификацияГрамматикиToolStripMenuItem.Click += классификацияГрамматикиToolStripMenuItem_Click;
             // 
             // методАнализаToolStripMenuItem
             // 
             методАнализаToolStripMenuItem.Name = "методАнализаToolStripMenuItem";
             методАнализаToolStripMenuItem.Size = new Size(231, 22);
             методАнализаToolStripMenuItem.Text = "Метод анализа";
+            методАнализаToolStripMenuItem.Click += методАнализаToolStripMenuItem_Click;
             // 
             // текстовыйПримерToolStripMenuItem
             // 
             текстовыйПримерToolStripMenuItem.Name = "текстовыйПримерToolStripMenuItem";
             текстовыйПримерToolStripMenuItem.Size = new Size(231, 22);
-            текстовыйПримерToolStripMenuItem.Text = "Текстовый пример";
+            текстовыйПримерToolStripMenuItem.Text = "Тестовый пример";
+            текстовыйПримерToolStripMenuItem.Click += текстовыйПримерToolStripMenuItem_Click;
             // 
             // списокЛитературыToolStripMenuItem
             // 
             списокЛитературыToolStripMenuItem.Name = "списокЛитературыToolStripMenuItem";
             списокЛитературыToolStripMenuItem.Size = new Size(231, 22);
             списокЛитературыToolStripMenuItem.Text = "Список литературы";
+            списокЛитературыToolStripMenuItem.Click += списокЛитературыToolStripMenuItem_Click;
             // 
             // исходныйКодПрограммыToolStripMenuItem
             // 
             исходныйКодПрограммыToolStripMenuItem.Name = "исходныйКодПрограммыToolStripMenuItem";
             исходныйКодПрограммыToolStripMenuItem.Size = new Size(231, 22);
             исходныйКодПрограммыToolStripMenuItem.Text = "Исходный код программы";
+            исходныйКодПрограммыToolStripMenuItem.Click += исходныйКодПрограммыToolStripMenuItem_Click;
             // 
             // пускToolStripMenuItem
             // 

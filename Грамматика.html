@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Грамматика</title>
+</head>
+<body>
+    <h1>Грамматика</h1>
+    <p> <code>
+        Определим грамматику десятичных констант языка R G[‹Def›] в нотации Хомского с продукциями P:<br>
+1.  &lt;Def&gt; → &lt;Letter&gt; &lt;NameVec&gt; <br> 
+2.  &lt;NameVec&gt; → &lt;Letter&gt; &lt;NameVec&gt; | &lt; &lt;Arrow&gt; <br>
+3.  &lt;Arrow&gt; → - &lt;RightPart&gt; <br>
+4.  &lt;RightPart&gt; → c &lt;FuncCall&gt; | NULL; <br>
+5.  &lt;FuncCall&gt; → ( &lt;ParamsList&gt; <br>
+6.  &lt;ParamsList&gt; → &lt;Param&gt; &lt;ParamsMore&gt; <br>
+7.  &lt;ParamsMore&gt; → , &lt;Param&gt; &lt;ParamsMore&gt; | ); <br>
+8.  &lt;Param&gt; → &lt;NumberParam&gt; | &lt;StringParam&gt; | TRUE | FALSE | NULL <br>
+9.  &lt;NumberParam&gt; → - &lt;UnsignedNumber&gt; | &lt;UnsignedNumber&gt; <br>
+10. &lt;UnsignedNumber&gt; → &lt;UnsignedInt&gt; | &lt;UnsignedInt&gt; . &lt;UnsignedInt&gt; <br>
+11. &lt;UnsignedInt&gt; → &lt;Digit&gt; &lt;UnsignedInt&gt; | &lt;Digit&gt; <br>
+12. &lt;StringParamv → " &lt;CharSeq&gt; <br>
+13. &lt;CharSeq&gt; → &lt;Letter&gt; &lt;CharSeq&gt; | &lt;Digit&gt; &lt;CharSeq&gt; | &lt;Symbol&gt; &lt;CharSeq&gt; | " <br>
+•   &lt;Letter&gt; → “a” | “b” | ... | “z” | “A” | ... | “Z” <br>
+•   &lt;Digit&gt; → “0” | “1” | ... | “9” <br>
+•   &lt;Symbol&gt; → “ “ | “!” | “@” | “#” | “$” | “%” | “^” | “&” | “*” | “(“ | “)” | “-“ | “+” | “=” | “[“ | “]” | “{“ | “}” | “\” | “|” | “;” | “:” | “'” | “,” | <br> “.” | “/” | “?” | “>” | “<” | “~” | “`” | “_” <br>
+Следуя введенному формальному определению грамматики, представим G[‹Def›] ее составляющими: <br>
+•   Z = ‹Def›; <br>
+•   VT = {a, b, c, ..., z, A, B, C, ..., Z, , ! , @ , # , $ , % , ^ , & , * , ( , ) , - , + , = , [ , ] , { , } , \ , , , ; , : , ' , , , . , / , ? , > , < , ~ , ` , _ , , 0, 1, 2, ..., 9}; <br>
+•   VN = {&lt;Def&gt;, &lt;NameVec&gt;, &lt;Arrow&gt;, &lt;RightPart&gt;, &lt;FuncCall&gt;, &lt;ParamsList&gt;, &lt;ParamsMore&gt;, &lt;Param&gt;, &lt;NumberParam&gt;, &lt;UnsignedNumber&gt;, &lt;UnsignedInt&gt;, &lt;StringParam&gt;, &lt;CharSeq&gt;}. <br>
+</code>
+    </p>
+</body>
+</html>

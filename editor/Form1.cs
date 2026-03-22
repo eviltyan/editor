@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
@@ -930,6 +931,125 @@ namespace editor
                     richTextBox.Select(charIndex, 1);
                     richTextBox.ScrollToCaret();
                 }
+            }
+        }
+
+        private void постановкаЗадачиToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string url = "E:/projects/source/repos/editor/ПостановкаЗадачи.html";
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+
+            }
+        }
+
+        private void грамматикаToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string url = "E:/projects/source/repos/editor/Грамматика.html";
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+
+            }
+        }
+
+        private void классификацияГрамматикиToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string url = "E:/projects/source/repos/editor/КлассификацияГрамматики.html";
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+
+            }
+        }
+
+        private void методАнализаToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string url = "E:/projects/source/repos/editor/МетодАнализа.html";
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+
+            }
+        }
+
+        private void текстовыйПримерToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string url = "E:/projects/source/repos/editor/ТекстовыйПример.html";
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+
+            }
+        }
+
+        private void списокЛитературыToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string url = "E:/projects/source/repos/editor/СписокЛитературы.html";
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+
+            }
+        }
+
+        private void исходныйКодПрограммыToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string url = "E:/projects/source/repos/editor/ИсходныйКод.html";
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+
             }
         }
     }

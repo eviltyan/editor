@@ -1,0 +1,482 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Исходный код</title>
+</head>
+<body>
+    <h1>Исходный код</h1>
+    <p> <code>
+//Parser.cs
+using System;<br>
+using System.Collections.Generic;<br>
+using System.Text;<br>
+<br>
+namespace editor<br>
+{<br>
+    public class SyntaxError<br>
+    {<br>
+        public string InvalidFragment { get; set; }<br>
+        public int Line { get; set; }<br>
+        public int Position { get; set; }<br>
+        public string Description { get; set; }<br>
+        public string Location => $"строка {Line}, позиция {Position}";<br>
+    }<br>
+<br>
+    public class SyntaxAutomaton<br>
+    {<br>
+        private enum State<br>
+        {<br>
+            Start,<br>
+            InNameVec,<br>
+            ExpectArrow,<br>
+            ExpectMinus,<br>
+            ExpectCOrNull,<br>
+            InFuncCall,<br>
+            InParams,<br>
+            AfterParam,<br>
+            InNumber,<br>
+            InNegativeNumber,<br>
+            AfterDecimalPoint,<br>
+            InString,<br>
+            ExpectSemicolon,<br>
+            End,<br>
+            Error<br>
+        }<br>
+<br>
+        private enum StackSymbol<br>
+        {<br>
+            Left,<br>
+            Right<br>
+        }<br>
+<br>
+        private State currentState;<br>
+        private Stack<StackSymbol> stack;<br>
+        private List<Token> tokens;<br>
+        private int position;<br>
+        private List<SyntaxError> errors;<br>
+        private int currentLine;<br>
+        private int currentPos;<br>
+<br>
+        public SyntaxAutomaton()<br>
+        {<br>
+            stack = new Stack<StackSymbol>();<br>
+            errors = new List<SyntaxError>();<br>
+        }<br>
+<br>
+        public List<SyntaxError> Parse(List<Token> tokens)<br>
+        {<br>
+            this.tokens = tokens;<br>
+            this.position = 0;<br>
+            this.currentState = State.Start;<br>
+            this.errors = new List<SyntaxError>();<br>
+            this.stack.Clear();<br>
+<br>
+            while (position < tokens.Count && currentState != State.Error)<br>
+            {<br>
+                Token token = tokens[position];<br>
+                currentLine = token.Line;<br>
+                currentPos = token.StartPos;<br>
+                ProcessToken(token);<br>
+            }<br>
+<br>
+            if (currentState == State.End && position >= tokens.Count)<br>
+            {<br>
+                // Успех<br>
+            }<br>
+            else if (currentState != State.Error && currentState != State.End)<br>
+            {<br>
+                AddError("<конец файла>", currentLine, currentPos, "Неожиданный конец строки. Возможно, пустая строка, не закрыта скобка или отсутствует ';'");<br>
+            }<br>
+<br>
+            return errors;<br>
+        }<br>
+<br>
+<br>
+        private void ProcessToken(Token token)<br>
+        {<br>
+            switch (currentState)<br>
+            {<br>
+                case State.Start:<br>
+                    // <Def> → <Letter> <NameVec><br>
+                    if (IsLetter(token))<br>
+                    {<br>
+                        currentState = State.InNameVec;<br>
+                        position++;<br>
+                    }<br>
+                    else<br>
+                    {<br>
+                        AddError(token.Value, token.Line, token.StartPos,<br>
+                            $"Ожидается идентификатор (буква), найдено '{token.Value}'");<br>
+                        RecoverToSyncPoint();<br>
+                    }<br>
+                    break;<br>
+<br>
+                case State.InNameVec:<br>
+                    // <NameVec> → <Letter> <NameVec> | < <Arrow><br>
+                    if (token.Value == "<-")<br>
+                    {<br>
+                        currentState = State.ExpectCOrNull;<br>
+                        position++;<br>
+                    }<br>
+                    else if (token.Value == "(пробел)")<br>
+                    {<br>
+                        position++;<br>
+                    }<br>
+                    else<br>
+                    {<br>
+                        AddError(token.Value, token.Line, token.StartPos,<br>
+                            $"Ожидается '<-', найдено '{token.Value}'");<br>
+                        RecoverToSyncPoint();<br>
+                    }<br>
+                    break;<br>
+<br>
+                case State.ExpectCOrNull:<br>
+                    // <RightPart> → c <FuncCall> | NULL;<br>
+                    if (token.Value == "c" && token.Type == "id")<br>
+                    {<br>
+                        currentState = State.InFuncCall;<br>
+                        position++;<br>
+                    }<br>
+                    else if (token.Value == "(пробел)")<br>
+                    {<br>
+                        position++;<br>
+                    }<br>
+                    else if (token.Value == "NULL" && token.Code == 14)<br>
+                    {<br>
+                        currentState = State.ExpectSemicolon;<br>
+                        position++;<br>
+                    }<br>
+                    else<br>
+                    {<br>
+                        AddError(token.Value, token.Line, token.StartPos,<br>
+                            $"Ожидается 'c' или 'NULL', найдено '{token.Value}'");<br>
+                        RecoverToSyncPoint();<br>
+                    }<br>
+                    break;<br>
+<br>
+                case State.InFuncCall:<br>
+                    // <FuncCall> → ( <ParamsList><br>
+                    if (token.Value == "(")<br>
+                    {<br>
+                        stack.Push(StackSymbol.Left);<br>
+                        currentState = State.InParams;<br>
+                        position++;<br>
+                    }<br>
+                    else<br>
+                    {<br>
+                        AddError(token.Value, token.Line, token.StartPos,<br>
+                            $"Ожидается '(', найдено '{token.Value}'");<br>
+                        RecoverToSyncPoint();<br>
+                    }<br>
+                    break;<br>
+<br>
+                case State.InParams:<br>
+                    // <ParamsList> → <Param> <ParamsMore><br>
+                    if (token.Value == ")")<br>
+                    {<br>
+                        if (stack.Count > 0 && stack.Peek() == StackSymbol.Left)<br>
+                        {<br>
+                            stack.Pop();<br>
+                            currentState = State.End;<br>
+                            position++;<br>
+                        }<br>
+                        else<br>
+                        {<br>
+                            AddError(token.Value, token.Line, token.StartPos,<br>
+                                "Неожиданная ')'");<br>
+                            RecoverToSyncPoint();<br>
+                        }<br>
+                    }<br>
+                    else if (token.Value == "(пробел)")<br>
+                    {<br>
+                        position++;<br>
+                    }<br>
+                    else if (IsNumberParamStart(token))<br>
+                    {<br>
+                        if (token.Value == "-")<br>
+                        {<br>
+                            currentState = State.InNegativeNumber;<br>
+                        }<br>
+                        else<br>
+                        {<br>
+                            currentState = State.InNumber;<br>
+                        }<br>
+                    }<br>
+                    else if (IsStringParamStart(token))<br>
+                    {<br>
+                        currentState = State.AfterParam;<br>
+                        position++;<br>
+                    }<br>
+                    else if (token.Value == "TRUE" || token.Value == "FALSE" || token.Value == "NULL")<br>
+                    {<br>
+                        currentState = State.AfterParam;<br>
+                        position++;<br>
+                    }<br>
+                    else<br>
+                    {<br>
+                        AddError(token.Value, token.Line, token.StartPos,<br>
+                            $"Ожидается параметр (число, строка, TRUE, FALSE, NULL), найдено '{token.Value}'");<br>
+                        RecoverToNextParam();<br>
+                    }<br>
+                    break;<br>
+<br>
+                case State.InNumber:<br>
+                    // <NumberParam> → <UnsignedNumber><br>
+                    if (IsNumber(token))<br>
+                    {<br>
+                        if (token.Value.Contains("."))<br>
+                        {<br>
+                            string[] parts = token.Value.Split('.');<br>
+                            if (string.IsNullOrEmpty(parts[0]) || parts[0].Length == 0)<br>
+                            {<br>
+                                AddError(token.Value, token.Line, token.StartPos,<br>
+                                    "Ожидается цифра перед десятичной точкой");<br>
+                            }<br>
+                            if (string.IsNullOrEmpty(parts[1]) || parts[1].Length == 0)<br>
+                            {<br>
+                                AddError(token.Value, token.Line, token.StartPos,<br>
+                                    "Ожидается цифра после десятичной точки");<br>
+                            }<br>
+                        }<br>
+<br>
+                        currentState = State.AfterParam;<br>
+                        position++;<br>
+                    }<br>
+                    else if (token.Value == ",")<br>
+                    {<br>
+                        currentState = State.InParams;<br>
+                        position++;<br>
+                    }<br>
+                    else if (token.Value == ")")<br>
+                    {<br>
+                        currentState = State.ExpectSemicolon;<br>
+                        stack.Push(StackSymbol.Right);<br>
+                        position++;<br>
+                    }<br>
+                    else<br>
+                    {<br>
+                        AddError(token.Value, token.Line, token.StartPos,<br>
+                            $"Ожидается число, найдено '{token.Value}'");<br>
+                        RecoverToNextParam();<br>
+                    }<br>
+                    break;<br>
+<br>
+                case State.InNegativeNumber:<br>
+                    // <NumberParam> → - <UnsignedNumber><br>
+                    if (IsNumber(token))<br>
+                    {<br>
+                        stack.Push(StackSymbol.Right);<br>
+                        currentState = State.AfterParam;<br>
+                        position++;<br>
+                    }<br>
+                    else<br>
+                    {<br>
+                        AddError(token.Value, token.Line, token.StartPos,<br>
+                            $"Ожидается число после '-', найдено '{token.Value}'");<br>
+                        RecoverToNextParam();<br>
+                    }<br>
+                    break;<br>
+<br>
+                case State.AfterParam:<br>
+                    // <ParamsMore> → , <Param> <ParamsMore> | )<br>
+                    if (token.Value == ",")<br>
+                    {<br>
+                        currentState = State.InParams;<br>
+                        position++;<br>
+                    }<br>
+                    else if (token.Value == "(пробел)")<br>
+                    {<br>
+                        position++;<br>
+                    }<br>
+                    else if (token.Value == ")")<br>
+                    {<br>
+                        if (stack.Count > 0 && stack.Peek() == StackSymbol.Left)<br>
+                        {<br>
+                            stack.Pop();<br>
+                            currentState = State.ExpectSemicolon;<br>
+                            position++;<br>
+                        }<br>
+                        else<br>
+                        {<br>
+                            AddError(token.Value, token.Line, token.StartPos,<br>
+                                "Неожиданная ')'");<br>
+                            RecoverToSyncPoint();<br>
+                        }<br>
+                    }<br>
+                    else<br>
+                    {<br>
+                        AddError(token.Value, token.Line, token.StartPos,<br>
+                            $"Ожидается ',' или ')', найдено '{token.Value}'");<br>
+                        RecoverToNextParam();<br>
+                    }<br>
+                    break;<br>
+<br>
+                case State.ExpectSemicolon:<br>
+                    if (token.Value == "(" || token.Value == ")")<br>
+                    {<br>
+                        AddError(token.Value, token.Line, token.StartPos,<br>
+                            $"Неожиданная '{token.Value}'");<br>
+                    }<br>
+                    if (token.Value == ";")<br>
+                    {<br>
+                        currentState = State.End;<br>
+                        position++;<br>
+                    }<br>
+                    else<br>
+                    {<br>
+                        AddError(token.Value, token.Line, token.StartPos,<br>
+                            $"Ожидается ';', найдено '{token.Value}'");<br>
+                        RecoverToSyncPoint();<br>
+                    }<br>
+                    break;<br>
+<br>
+                case State.End:<br>
+                    if (tokens[position - 1].Line != token.Line)<br>
+                    {<br>
+                        currentState = State.Start;<br>
+                        break;<br>
+                    }<br>
+                    if (position < tokens.Count)<br>
+                    {<br>
+                        AddError(token.Value, token.Line, token.StartPos,<br>
+                            $"Неожиданный символ после завершения выражения: '{token.Value}'");<br>
+                        currentState = State.Error;<br>
+                    }<br>
+                    break;<br>
+            }<br>
+        }<br>
+<br>
+        private void RecoverToSyncPoint()<br>
+        {<br>
+            string[] syncTokens = { "<-", "(", ";", ")", ","};<br>
+<br>
+            while (position < tokens.Count && !syncTokens.Contains(tokens[position].Value))<br>
+            {<br>
+                position++;<br>
+            }<br>
+<br>
+            if (position < tokens.Count)<br>
+            {<br>
+                Token syncToken = tokens[position];<br>
+<br>
+                switch (syncToken.Value)<br>
+                {<br>
+                    case ";":<br>
+                        currentState = State.End;<br>
+                        position++;<br>
+                        break;<br>
+<br>
+                    case "<-":<br>
+                        currentState = State.ExpectCOrNull;<br>
+                        position++;<br>
+                        break;<br>
+<br>
+                    case "(":<br>
+                        while (stack.Count > 0 && stack.Peek() != StackSymbol.Right)<br>
+                        {<br>
+                            stack.Pop();<br>
+                        }<br>
+                        if (stack.Count > 0)<br>
+                        {<br>
+                            stack.Pop();<br>
+                        }<br>
+                        currentState = State.InParams;<br>
+                        position++;<br>
+                        break;<br>
+<br>
+                    case ")":<br>
+                        while (stack.Count > 0 && stack.Peek() != StackSymbol.Left)<br>
+                        {<br>
+                            stack.Pop();<br>
+                        }<br>
+                        if (stack.Count > 0)<br>
+                        {<br>
+                            stack.Pop();<br>
+                        }<br>
+                        currentState = State.ExpectSemicolon;<br>
+                        position++;<br>
+                        break;<br>
+<br>
+                    case ",":<br>
+                        currentState = State.InParams;<br>
+                        position++;<br>
+                        break;<br>
+                }<br>
+            }<br>
+            else<br>
+            {<br>
+                currentState = State.Error;<br>
+            }<br>
+        }<br>
+<br>
+        private void RecoverToNextParam()<br>
+        {<br>
+            string[] syncTokens = { ",", ")"};<br>
+<br>
+            while (position < tokens.Count && !syncTokens.Contains(tokens[position].Value))<br>
+            {<br>
+                position++;<br>
+            }<br>
+<br>
+            if (position < tokens.Count)<br>
+            {<br>
+                if (tokens[position].Value == ",")<br>
+                {<br>
+                    currentState = State.InParams;<br>
+                    position++;<br>
+                }<br>
+                else if (tokens[position].Value == ")")<br>
+                {<br>
+                    if (stack.Count > 0 && stack.Peek() == StackSymbol.Left)<br>
+                    {<br>
+                        stack.Pop();<br>
+                    }<br>
+                    currentState = State.End;<br>
+                    position++;<br>
+                }<br>
+            }<br>
+            else<br>
+            {<br>
+                currentState = State.Error;<br>
+            }<br>
+        }<br>
+<br>
+        private bool IsLetter(Token token)<br>
+        {<br>
+            if (token.Type != "id") return false;<br>
+            if (token.Value.Length == 0) return false;<br>
+            char firstChar = token.Value[0];<br>
+            return char.IsLetter(firstChar);<br>
+        }<br>
+<br>
+        private bool IsNumberParamStart(Token token)<br>
+        {<br>
+            return IsNumber(token) || token.Value == "-";<br>
+        }<br>
+<br>
+        private bool IsNumber(Token token)<br>
+        {<br>
+            return token.Type == "integer" || token.Type == "numeric";<br>
+        }<br>
+<br>
+        private bool IsStringParamStart(Token token)<br>
+        {<br>
+            return token.Type == "character";<br>
+        }<br>
+<br>
+        private void AddError(string fragment, int line, int position, string description)<br>
+        {<br>
+            errors.Add(new SyntaxError<br>
+            {<br>
+                InvalidFragment = string.IsNullOrEmpty(fragment) ? "<конец файла>" : fragment,<br>
+                Line = line,<br>
+                Position = position,<br>
+                Description = description<br>
+            });<br>
+        }<br>
+    }<br>
+}<br>
+</code>
+    </p>
+</body>
+</html>

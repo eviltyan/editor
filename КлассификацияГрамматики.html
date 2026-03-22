@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Классификация грамматики</title>
+</head>
+<body>
+    <h1>Классификация грамматики</h1>
+    <p> 
+        Согласно классификации Хомского, грамматика G[‹Def›] является автоматной. <br>
+Правила (1) – (5), (11) – (13) относятся к классу праворекурсивных продукций (A → aB | a | ε): <br>
+1.  &lt;Def&gt; → &lt;Letter&gt; &lt;NameVec&gt; <br> 
+2.  &lt;NameVec&gt; → &lt;Letter&gt; &lt;NameVec&gt; | &lt; &lt;Arrow&gt; <br>
+3.  &lt;Arrow&gt; → - &lt;RightPart&gt; <br>
+4.  &lt;RightPart&gt; → c &lt;FuncCall&gt; | NULL; <br>
+5.  &lt;FuncCall&gt; → ( &lt;ParamsList&gt; <br>
+11. &lt;UnsignedInt&gt; → &lt;Digit&gt; &lt;UnsignedInt&gt; | &lt;Digit&gt; <br>
+12. &lt;StringParamv → " &lt;CharSeq&gt; <br>
+13. &lt;CharSeq&gt; → &lt;Letter&gt; &lt;CharSeq&gt; | &lt;Digit&gt; &lt;CharSeq&gt; | &lt;Symbol&gt; &lt;CharSeq&gt; | " <br>
+Отметим, что правила должны быть либо только леворекурсивными, либо только праворекурсивными. Комбинация тех и других не допускается. Однако данная грамматика <br> содержит одновременно леворекурсивные и праворекурсивные продукции (6)-(10), и, следовательно, не является полностью автоматной. <br>
+6.  &lt;ParamsList&gt; → &lt;Param&gt; &lt;ParamsMore&gt; <br>
+7.  &lt;ParamsMore&gt; → , &lt;Param&gt; &lt;ParamsMore&gt; | ); <br>
+8.  &lt;Param&gt; → &lt;NumberParam&gt; | &lt;StringParam&gt; | TRUE | FALSE | NULL <br>
+9.  &lt;NumberParam&gt; → - &lt;UnsignedNumber&gt; | &lt;UnsignedNumber&gt; <br>
+10. &lt;UnsignedNumber&gt; → &lt;UnsignedInt&gt; | &lt;UnsignedInt&gt; . &lt;UnsignedInt&gt; <br>
+    </p>
+</body>
+</html>

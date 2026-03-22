@@ -37,6 +37,7 @@ x <- NULL;
 14. Ключевое слово NULL
 
 ## Разработка грамматики
+```
 1.	<Def> → <Letter> <NameVec>
 2.	<NameVec> → <Letter> <NameVec> | < <Arrow>
 3.	<Arrow> → - <RightPart>
@@ -54,10 +55,11 @@ x <- NULL;
 •	<Digit> → “0” | “1” | ... | “9”
 •	<Symbol> → “ “ | “!” | “@” | “#” | “$” | “%” | “^” | “&” | “*” | “(“ | “)” | “-“ | “+” | “=” | “[“ | “]” | “{“ | “}” | “\” | “|” | “;” | “:” | “'” | “,” | “.” | “/” | “?” | “>” | “<” | “~” | “`” | “_”
 
-G[<Def>]:
+G[<Z>]:
 •	Z = ‹Def›;
 •	VT = {a, b, c, ..., z, A, B, C, ..., Z, , ! , @ , # , $ , % , ^ , & , * , ( , ) , - , + , = , [ , ] , { , } , \ , , , ; , : , ' , , , . , / , ? , > , < , ~ , ` , _ , , 0, 1, 2, ..., 9};
 •	VN = {<Def>, <NameVec>, <Arrow>, <RightPart>, <FuncCall>, <ParamsList>, <ParamsMore>, <Param>, <NumberParam>, <UnsignedNumber>, <UnsignedInt>, <StringParam>, <CharSeq>}.
+```
 
 ## Классификация грамматики (по Хомскому)
 Автоматная грамматика

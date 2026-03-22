@@ -11,3 +11,5 @@ x <- c(1, 5.4, TRUE, "hello");
 x <- c("first"=3, "second"=0, "third"=9);
 x <- NULL;
 numbers <- seq(from = 0, to = 100, by = 20);
+
+

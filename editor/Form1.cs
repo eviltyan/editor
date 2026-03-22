@@ -12,12 +12,14 @@ namespace editor
         private Dictionary<TabPage, Rectangle> closeButtons = new Dictionary<TabPage, Rectangle>();
 
         private LexicalAnalyzer analyzer;
+        private SyntaxAutomaton syntax;
 
         public Form1()
         {
             InitializeComponent();
 
             analyzer = new LexicalAnalyzer();
+            syntax = new SyntaxAutomaton();
 
             tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
             tabControl1.DrawItem += TabControl1_DrawItem;
@@ -44,17 +46,26 @@ namespace editor
             dataGridView.AllowUserToDeleteRows = false;
             dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 
-            dataGridView.Columns.Add("Code", "Условный код");
-            dataGridView.Columns.Add("Type", "Тип лексемы");
-            dataGridView.Columns["Type"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            dataGridView.Columns.Add("Value", "Лексема");
+            //dataGridView.Columns.Add("Code", "Условный код");
+            //dataGridView.Columns.Add("Type", "Тип лексемы");
+            //dataGridView.Columns["Type"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            //dataGridView.Columns.Add("Value", "Лексема");
+            //dataGridView.Columns.Add("Location", "Местоположение");
+            //dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            //dataGridView.Columns.Add("IsError", "Ошибка");
+            //dataGridView.Columns.Add("ErrorMessage", "Сообщение об ошибке");
+
+            //dataGridView.Columns["IsError"].Visible = false;
+            //dataGridView.Columns["ErrorMessage"].Visible = false;
+
+
+            dataGridView.Columns.Add("Fragment", "Неверный фрагмент");
+            dataGridView.Columns["Fragment"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dataGridView.Columns.Add("Location", "Местоположение");
             dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            dataGridView.Columns.Add("IsError", "Ошибка");
-            dataGridView.Columns.Add("ErrorMessage", "Сообщение об ошибке");
-
-            dataGridView.Columns["IsError"].Visible = false;
-            dataGridView.Columns["ErrorMessage"].Visible = false;
+            dataGridView.Columns.Add("Description", "Описание ошибки");
+            dataGridView.Columns["Description"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dataGridView.CellClick += ErrorGridView_CellClick;
         }
 
         private void createNewDocument()
@@ -78,19 +89,27 @@ namespace editor
             dataGridView.AllowUserToDeleteRows = false;
             dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 
-            dataGridView.Columns.Add("Code", "Условный код");
-            dataGridView.Columns.Add("Type", "Тип лексемы");
-            dataGridView.Columns["Type"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            dataGridView.Columns.Add("Value", "Лексема");
+            //dataGridView.Columns.Add("Code", "Условный код");
+            //dataGridView.Columns.Add("Type", "Тип лексемы");
+            //dataGridView.Columns["Type"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            //dataGridView.Columns.Add("Value", "Лексема");
+            //dataGridView.Columns.Add("Location", "Местоположение");
+            //dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            //dataGridView.Columns.Add("IsError", "Ошибка");
+            //dataGridView.Columns.Add("ErrorMessage", "Сообщение об ошибке");
+
+            //dataGridView.Columns["IsError"].Visible = false;
+            //dataGridView.Columns["ErrorMessage"].Visible = false;
+
+            //dataGridView.CellClick += ResultGridView_CellClick;
+
+            dataGridView.Columns.Add("Fragment", "Неверный фрагмент");
+            dataGridView.Columns["Fragment"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dataGridView.Columns.Add("Location", "Местоположение");
             dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            dataGridView.Columns.Add("IsError", "Ошибка");
-            dataGridView.Columns.Add("ErrorMessage", "Сообщение об ошибке");
-
-            dataGridView.Columns["IsError"].Visible = false;
-            dataGridView.Columns["ErrorMessage"].Visible = false;
-
-            dataGridView.CellClick += ResultGridView_CellClick;
+            dataGridView.Columns.Add("Description", "Описание ошибки");
+            dataGridView.Columns["Description"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dataGridView.CellClick += ErrorGridView_CellClick;
 
             splitContainer.Panel1.Controls.Add(richTextBoxEdit);
             splitContainer.Panel2.Controls.Add(dataGridView);
@@ -264,8 +283,7 @@ namespace editor
 
             bool canUndo = info.History.CanUndo;
             bool canRedo = info.History.CanRedo;
-            bool canUndoAll = (info.History.GetCurrentState() != null); //&&
-                                                                        // info.History.GetCurrentState() != info.History.UndoAll()); // Есть изменения
+            bool canUndoAll = (info.History.GetCurrentState() != null);
 
             if (info.IsSaved)
             {
@@ -337,7 +355,7 @@ namespace editor
                             editBox.LoadFile(filePath, RichTextBoxStreamType.RichText);
                         else
                         {
-                            using (StreamReader reader = new StreamReader(filePath, true)) // true = auto-detect encoding
+                            using (StreamReader reader = new StreamReader(filePath, true))
                             {
                                 editBox.Text = reader.ReadToEnd();
                             }
@@ -710,15 +728,13 @@ namespace editor
             return base.ProcessCmdKey(ref msg, keyData);
         }
 
-
-
         private void startButton_Click(object sender, EventArgs e)
         {
-            StartAnalysis();
+            Analyze();
         }
         private void пускToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            StartAnalysis();
+            Analyze();
         }
 
         private void отменитьToolStripMenuItem_Click(object sender, EventArgs e)
@@ -780,47 +796,87 @@ namespace editor
             info.Show();
         }
 
-        private void StartAnalysis()
+        private void Analyze()
         {
             try
             {
-                SplitContainer splitReadOnly = tabControl1.SelectedTab.Controls[0] as SplitContainer;
-                DataGridView dataGridView = splitReadOnly.Panel2.Controls[0] as DataGridView;
+                Application.DoEvents();
 
-                RichTextBox richTextBox = GetEditRichTextBox(tabControl1.SelectedTab);
-                richTextBox.SelectionStart = richTextBox.Text.Length;
-                richTextBox.ScrollToCaret();
-                string input = richTextBox.Text;
-                var tokens = analyzer.Analyze(input);
+                string input = richTextBoxEdit.Text;
 
                 dataGridView.Rows.Clear();
-                dataGridView.Columns["IsError"].Visible = false;
-                dataGridView.Columns["ErrorMessage"].Visible = false;
+
+                List<SyntaxError> allErrors = new List<SyntaxError>();
+
+                var tokens = analyzer.Analyze(input);
 
                 foreach (var token in tokens)
                 {
-                    int rowIndex = dataGridView.Rows.Add(
-                        token.Code,
-                        token.Type,
-                        token.Value,
-                        token.Location,
-                        token.IsError,
-                        token.ErrorMessage
-                    );
-
                     if (token.IsError)
                     {
-                        dataGridView.Rows[rowIndex].DefaultCellStyle.BackColor = Color.LightCoral;
-                        dataGridView.Columns["IsError"].Visible = true;
-                        dataGridView.Columns["ErrorMessage"].Visible = true;
-                        dataGridView.Columns["ErrorMessage"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                        allErrors.Add(new SyntaxError
+                        {
+                            InvalidFragment = token.Value,
+                            Line = token.Line,
+                            Position = token.StartPos,
+                            Description = token.ErrorMessage
+                        });
                     }
                 }
 
-                if (tokens.Count == 0)
+                dynamic syntaxErrors = syntax.Parse(tokens);
+                allErrors.AddRange(syntaxErrors);
+
+                foreach (var error in allErrors)
                 {
-                    MessageBox.Show("Нет лексем для анализа.", "Информация",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    int rowIndex = dataGridView.Rows.Add(
+                        error.InvalidFragment,
+                        error.Location,
+                        error.Description
+                    );
+
+                    dataGridView.Columns["Fragment"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                    dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                    dataGridView.Columns["Description"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                    dataGridView.Rows[rowIndex].DefaultCellStyle.BackColor = Color.FromArgb(255, 240, 240);
+                }
+
+                int totalErrors = allErrors.Count;
+
+                DataGridViewRow countRow = new DataGridViewRow();
+                countRow.DefaultCellStyle.BackColor = totalErrors == 0 ? Color.FromArgb(220, 255, 220) : Color.FromArgb(255, 220, 220);
+                countRow.DefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+                countRow.DefaultCellStyle.ForeColor = totalErrors == 0 ? Color.Green : Color.Red;
+
+                DataGridViewCell countCell = new DataGridViewTextBoxCell();
+                if (totalErrors == 0)
+                {
+                    countCell.Value = $"Общее количество ошибок: {totalErrors} - Синтаксических ошибок не обнаружено!";
+                }
+                else
+                {
+                    countCell.Value = $"Общее количество ошибок: {totalErrors}";
+                }
+                countRow.Cells.Add(countCell);
+
+                DataGridViewCell emptyCell3 = new DataGridViewTextBoxCell();
+                emptyCell3.Value = "";
+                countRow.Cells.Add(emptyCell3);
+
+                DataGridViewCell emptyCell4 = new DataGridViewTextBoxCell();
+                emptyCell4.Value = "";
+                countRow.Cells.Add(emptyCell4);
+
+                dataGridView.Rows.Add(countRow);
+
+                if (totalErrors == 0)
+                {
+                    dataGridView.Text = "Анализ завершен. Ошибок не обнаружено!";
+                    MessageBox.Show("Анализ завершен.Ошибок не обнаружено!");
+                }
+                else
+                {
+                    MessageBox.Show($"Анализ завершен. Найдено ошибок: {totalErrors}");
                 }
             }
             catch (Exception ex)
@@ -830,16 +886,13 @@ namespace editor
             }
         }
 
-        private void ResultGridView_CellClick(object sender, DataGridViewCellEventArgs e)
+        private void ErrorGridView_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-            if (e.RowIndex >= 0)
+            if (e.RowIndex >= 0 && e.RowIndex < dataGridView.Rows.Count - 1)
             {
-                SplitContainer splitReadOnly = tabControl1.SelectedTab.Controls[0] as SplitContainer;
-                DataGridView dataGridView = splitReadOnly.Panel2.Controls[0] as DataGridView;
-
                 var row = dataGridView.Rows[e.RowIndex];
-
                 string location = row.Cells["Location"].Value?.ToString();
+
                 if (!string.IsNullOrEmpty(location))
                 {
                     var parts = location.Replace("строка ", "").Split(',');
@@ -847,10 +900,10 @@ namespace editor
                     {
                         if (int.TryParse(parts[0], out int line))
                         {
-                            var positions = parts[1].Trim().Split('-');
-                            if (positions.Length == 2 && int.TryParse(positions[0], out int startPos))
+                            var posPart = parts[1].Replace("позиция", "").Trim();
+                            if (int.TryParse(posPart, out int position))
                             {
-                                NavigateToPosition(line, startPos);
+                                NavigateToPosition(line, position);
                             }
                         }
                     }

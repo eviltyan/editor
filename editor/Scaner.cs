@@ -4,7 +4,6 @@ using System.Text;
 
 namespace editor
 {
-
     public class Token
     {
         public int Code { get; set; }
@@ -16,7 +15,7 @@ namespace editor
         public bool IsError { get; set; }
         public string ErrorMessage { get; set; }
 
-        public string Location => $"строка {Line}, {StartPos}-{EndPos}";
+        public string Location => $"строка {Line}, позиция {StartPos}";
     }
 
     public class LexicalAnalyzer
@@ -34,12 +33,8 @@ namespace editor
             LeftParen,
             RightParen,
             Comma,
-            Plus,
             Minus,
-            Equal,
             Id,
-            Quote,
-            Enum,
             End,
             Error
         }
@@ -70,7 +65,7 @@ namespace editor
                         tokens.Add(new Token
                         {
                             Code = -1,
-                            Type = "ошибка",
+                            Type = "error",
                             Value = currentToken.ToString(),
                             Line = tokenStartLine,
                             StartPos = tokenStartPos,
@@ -133,34 +128,14 @@ namespace editor
                             currentState = State.Comma;
                             currentToken.Append(c);
                         }
-                        else if (c == '+')
-                        {
-                            currentState = State.Plus;
-                            currentToken.Append(c);
-                        }
                         else if (c == '-')
                         {
                             currentState = State.Minus;
                             currentToken.Append(c);
                         }
-                        else if (c == '=')
-                        {
-                            currentState = State.Equal;
-                            currentToken.Append(c);
-                        }
-                        else if (c == '\'')
-                        {
-                            currentState = State.CharStart;
-                            currentToken.Append(c);
-                        }
                         else if (c == '"')
                         {
                             currentState = State.CharStart;
-                            currentToken.Append(c);
-                        }
-                        else if (c == ':')
-                        {
-                            currentState = State.Enum;
                             currentToken.Append(c);
                         }
                         else if (c == ';')
@@ -177,7 +152,7 @@ namespace editor
                             tokens.Add(new Token
                             {
                                 Code = -1,
-                                Type = "ошибка",
+                                Type = "error",
                                 Value = c.ToString(),
                                 Line = line,
                                 StartPos = pos,
@@ -201,13 +176,13 @@ namespace editor
 
                             if (keywords.Contains(value))
                             {
-                                code = value == "TRUE" ? 14 : value == "FALSE" ? 15 : 16;
-                                type = "ключевое слово";
+                                code = value == "TRUE" ? 12 : value == "FALSE" ? 13 : 14;
+                                type = "keyword";
                             }
                             else
                             {
                                 code = 1;
-                                type = "идентификатор";
+                                type = "id";
                             }
 
                             tokens.Add(new Token
@@ -242,7 +217,7 @@ namespace editor
                             tokens.Add(new Token
                             {
                                 Code = 4,
-                                Type = "целое без знака",
+                                Type = "integer",
                                 Value = currentToken.ToString(),
                                 Line = tokenStartLine,
                                 StartPos = tokenStartPos,
@@ -266,7 +241,7 @@ namespace editor
                             tokens.Add(new Token
                             {
                                 Code = 5,
-                                Type = "дробное без знака",
+                                Type = "numeric",
                                 Value = currentToken.ToString(),
                                 Line = tokenStartLine,
                                 StartPos = tokenStartPos,
@@ -290,7 +265,7 @@ namespace editor
                             tokens.Add(new Token
                             {
                                 Code = 2,
-                                Type = "разделитель (пробел)",
+                                Type = "space",
                                 Value = "(пробел)",
                                 Line = tokenStartLine,
                                 StartPos = tokenStartPos,
@@ -310,7 +285,7 @@ namespace editor
                             tokens.Add(new Token
                             {
                                 Code = 3,
-                                Type = "оператор присваивания",
+                                Type = "assign",
                                 Value = "<-",
                                 Line = tokenStartLine,
                                 StartPos = tokenStartPos,
@@ -325,7 +300,7 @@ namespace editor
                             tokens.Add(new Token
                             {
                                 Code = -1,
-                                Type = "ошибка",
+                                Type = "error",
                                 Value = "<",
                                 Line = tokenStartLine,
                                 StartPos = tokenStartPos,
@@ -345,7 +320,7 @@ namespace editor
                         tokens.Add(new Token
                         {
                             Code = 7,
-                            Type = "разделитель (открывающая скобка)",
+                            Type = "leftparen",
                             Value = "(",
                             Line = tokenStartLine,
                             StartPos = tokenStartPos,
@@ -362,7 +337,7 @@ namespace editor
                         tokens.Add(new Token
                         {
                             Code = 8,
-                            Type = "разделитель (закрывающая скобка)",
+                            Type = "rightparen",
                             Value = ")",
                             Line = tokenStartLine,
                             StartPos = tokenStartPos,
@@ -379,25 +354,8 @@ namespace editor
                         tokens.Add(new Token
                         {
                             Code = 9,
-                            Type = "разделитель (запятая)",
+                            Type = "comma",
                             Value = ",",
-                            Line = tokenStartLine,
-                            StartPos = tokenStartPos,
-                            EndPos = pos - 1
-                        });
-
-                        currentState = State.Start;
-                        currentToken.Clear();
-                        i--;
-                        pos--;
-                        break;
-
-                    case State.Plus:
-                        tokens.Add(new Token
-                        {
-                            Code = 12,
-                            Type = "оператор сложения",
-                            Value = "+",
                             Line = tokenStartLine,
                             StartPos = tokenStartPos,
                             EndPos = pos - 1
@@ -412,26 +370,9 @@ namespace editor
                     case State.Minus:
                         tokens.Add(new Token
                         {
-                            Code = 13,
-                            Type = "оператор вычитания",
+                            Code = 11,
+                            Type = "minus",
                             Value = "-",
-                            Line = tokenStartLine,
-                            StartPos = tokenStartPos,
-                            EndPos = pos - 1
-                        });
-
-                        currentState = State.Start;
-                        currentToken.Clear();
-                        i--;
-                        pos--;
-                        break;
-
-                    case State.Equal:
-                        tokens.Add(new Token
-                        {
-                            Code = 3,
-                            Type = "оператор присваивания",
-                            Value = "=",
                             Line = tokenStartLine,
                             StartPos = tokenStartPos,
                             EndPos = pos - 1
@@ -467,7 +408,7 @@ namespace editor
                             tokens.Add(new Token
                             {
                                 Code = -1,
-                                Type = "ошибка",
+                                Type = "error",
                                 Value = currentToken.ToString(),
                                 Line = tokenStartLine,
                                 StartPos = tokenStartPos,
@@ -490,25 +431,8 @@ namespace editor
                         tokens.Add(new Token
                         {
                             Code = 6,
-                            Type = "тип данных character",
+                            Type = "character",
                             Value = currentToken.ToString(),
-                            Line = tokenStartLine,
-                            StartPos = tokenStartPos,
-                            EndPos = pos - 1
-                        });
-
-                        currentState = State.Start;
-                        currentToken.Clear();
-                        i--;
-                        pos--;
-                        break;
-
-                    case State.Enum:
-                        tokens.Add(new Token
-                        {
-                            Code = 11,
-                            Type = "оператор последовательности",
-                            Value = ":",
                             Line = tokenStartLine,
                             StartPos = tokenStartPos,
                             EndPos = pos - 1
@@ -524,7 +448,7 @@ namespace editor
                         tokens.Add(new Token
                         {
                             Code = 10,
-                            Type = "конец оператора",
+                            Type = "end",
                             Value = ";",
                             Line = tokenStartLine,
                             StartPos = tokenStartPos,

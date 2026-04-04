@@ -50,7 +50,7 @@ x <- NULL;
 3.	<Arrow> → “-“ <RightPart>
 4.	<RightPart> → “c” <FuncCall> | “NULL;”
 5.	<FuncCall> → “(“ <Param>
-6.	<Param> → “-“ <UnsignedInt>, <Digit> <Int>, “"” <CharSeq> | “TRUE” <Param> | “FALSE” <Param> | “NULL” <Param> | “);”
+6.	<Param> → “-“ <UnsignedInt>, <Digit> <Int>, “"” <CharSeq> | “TRUE,” <Param> | “FALSE,” <Param> | “NULL,” <Param> | “);”
 7.	<UnsignedInt> → <Digit> <Int> | <Digit> <EndParams>
 8.	<Int> → <Digit> <Int> | “.” <SecondPart> | <Digit> <EndParams> | “,” <Param>
 9.	<SecondPart> → <Digit> <SecondPart> | <Digit> <EndParams> | “,” <Param>
@@ -63,7 +63,7 @@ x <- NULL;
 
 G[<Z>]:
 •	Z = ‹Def›;
-•	VT = {a, b, c, ..., z, A, B, C, ..., Z, , ! , @ , # , $ , % , ^ , & , * , ( , ) , - , + , = , [ , ] , { , } , \ , , , ; , : , ' , , , . , / , ? , > , < , ~ , ` , _ , , 0, 1, 2, ..., 9};
+•	VT = {a, b, c, ..., z, A, B, C, ..., Z,  , ! , @ , # , $ , % , ^ , & , * , ( , ) , - , + , = , [ , ] , { , } , \ , ; , : , ' , , , . , / , ? , > , < , ~ , ` , _ , 0, 1, 2, ..., 9};
 •	VN = {<Def>, <NameVec>, <Arrow>, <RightPart>, <FuncCall>, <Param>, <UnsignedInt>, <Int>, <SecondPart>, <CharSeq>, <EndParams>}.
 ```
 

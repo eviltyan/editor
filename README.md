@@ -49,7 +49,7 @@ x <- NULL;
 2.	<NameVec> → <Letter> <NameVec> | “<” <Arrow>
 3.	<Arrow> → “-“ <RightPart>
 4.	<RightPart> → “c” <FuncCall> | “NULL;”
-5.	<FuncCall> → “(“ <Param>
+5.	<FuncCall> → “(“ <Param> | “();“
 6.	<Param> → “-“ <UnsignedInt>, <Digit> <Int>, “"” <CharSeq> | “TRUE,” | “FALSE,” | “NULL,” | “TRUE);” | “FALSE);” | “NULL);”
 7.	<UnsignedInt> → <Digit> <Int> | <Digit> <EndParams>
 8.	<Int> → <Digit> <Int> | “.” <SecondPart> | <Digit> <EndParams> | “,” <Param>
@@ -73,7 +73,7 @@ G[<Z>]:
 ## Метод анализа
 Граф автоматной грамматики
 
-![alt text](g2.drawio.png)
+![alt text](g3.drawio.png)
 
 ## Диагностика и нейтрализация синтаксических ошибок
 В данной работе используется алгоритм нейтрализации синтаксических ошибок методом Айронса. После обнаружения недопустимой лексемы анализатор передвигается к безопасной точке программы - известной лексеме.

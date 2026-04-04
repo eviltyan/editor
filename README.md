@@ -49,8 +49,8 @@ x <- NULL;
 2.	<NameVec> → <Letter> <NameVec> | “<” <Arrow>
 3.	<Arrow> → “-“ <RightPart>
 4.	<RightPart> → “c” <FuncCall> | “NULL;”
-5.	<FuncCall> → “(“ <Param> | “();“
-6.	<Param> → “-“ <UnsignedInt>, <Digit> <Int>, “"” <CharSeq> | “TRUE,” | “FALSE,” | “NULL,” | “TRUE);” | “FALSE);” | “NULL);”
+5.	<FuncCall> → “(“ <Param> | “();”
+6.	<Param> → “-“ <UnsignedInt> | <Digit> <Int> | “"” <CharSeq> | “TRUE,” | “FALSE,” | “NULL,” | “TRUE);” | “FALSE);” | “NULL);”
 7.	<UnsignedInt> → <Digit> <Int> | <Digit> <EndParams>
 8.	<Int> → <Digit> <Int> | “.” <SecondPart> | <Digit> <EndParams> | “,” <Param>
 9.	<SecondPart> → <Digit> <SecondPart> | <Digit> <EndParams> | “,” <Param>
@@ -69,7 +69,23 @@ G[<Z>]:
 ```
 
 ## Классификация грамматики (по Хомскому)
-Автоматная грамматика
+Согласно классификации Хомского, грамматика G[‹Def›] является автоматной.
+Правила (1) – (11) относятся к классу праворекурсивных продукций (A → aB | a | ε):
+```
+1.	<Def> → <Letter> <NameVec>
+2.	<NameVec> → <Letter> <NameVec> | “<” <Arrow>
+3.	<Arrow> → “-“ <RightPart>
+4.	<RightPart> → “c” <FuncCall> | “NULL;”
+5.	<FuncCall> → “(“ <Param> | “();”
+6.	<Param> → “-“ <UnsignedInt> | <Digit> <Int> | “"” <CharSeq> | “TRUE” <Param> | “FALSE” <Param> | “NULL” <Param> | “);”
+7.	<UnsignedInt> → <Digit> <Int> | <Digit> <EndParams>
+8.	<Int> → <Digit> <Int> | “.” <SecondPart> | <Digit> <EndParams> | “,” <Param>
+9.	<SecondPart> → <Digit> <SecondPart> | <Digit> <EndParams> | “,” <Param>
+10.	<CharSeq> → <Letter> <CharSeq> | <Digit> <CharSeq> | <Symbol> <CharSeq> | “",” <Param> | “"” <EndParams> 
+11.	<EndParams> → “);”
+```
+Отметим, что правила должны быть либо только леворекурсивными, либо только праворекурсивными. Комбинация тех и других не допускается. 
+
 
 ## Метод анализа
 Граф автоматной грамматики

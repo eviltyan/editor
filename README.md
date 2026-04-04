@@ -50,7 +50,7 @@ x <- NULL;
 3.	<Arrow> → “-“ <RightPart>
 4.	<RightPart> → “c” <FuncCall> | “NULL;”
 5.	<FuncCall> → “(“ <Param>
-6.	<Param> → “-“ <UnsignedInt>, <Digit> <Int>, “"” <CharSeq> | “TRUE,” <Param> | “FALSE,” <Param> | “NULL,” <Param> | “);”
+6.	<Param> → “-“ <UnsignedInt>, <Digit> <Int>, “"” <CharSeq> | “TRUE,” | “FALSE,” | “NULL,” | “TRUE);” | “FALSE);” | “NULL);”
 7.	<UnsignedInt> → <Digit> <Int> | <Digit> <EndParams>
 8.	<Int> → <Digit> <Int> | “.” <SecondPart> | <Digit> <EndParams> | “,” <Param>
 9.	<SecondPart> → <Digit> <SecondPart> | <Digit> <EndParams> | “,” <Param>

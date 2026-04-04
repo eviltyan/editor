@@ -12,6 +12,13 @@
 ## Вариант задания
 ### Вариант:
 28, Объявление вектора на языке R.
+Векторы – это фундаментальные структуры данных в языке R, представляющие собой упорядоченные наборы элементов одного типа. Векторы могут содержать числовые, строковые, логические или значения NULL. Объявление векторов в R осуществляется с помощью функции c().
+Для описания векторов в языке R используется оператор присваивания <-. Формат записи: «имя_вектора <- выражение;».
+Примеры:
+1.	Вектор, созданный с помощью конкатенации одного типа данных: «nums <- c(1, 2, 3, 4, 5);». Функция c() объединяет переданные элементы в вектор.
+2.	Вектор, созданный с помощью конкатенации разных числовых типов данных: «numbers <- c(1, 2.05, -3, -4342.122, 5);». Функция c() приведет тип данных integer к numeric.
+3.	Вектор, созданный с помощью конкатенации разных типов данных: «vec <- c(1, “hello”, TRUE, 4.5, NULL);». Функция c() приведет элементы вектора к наиболее общему типу, в данном случае к character.
+
 
 ### Корректные входные строки:
 vec <- c("Swift", TRUE, 1, 2.5, 'hello');
@@ -32,25 +39,24 @@ x <- NULL;
 9. Разделитель (запятая) ","
 10. Конец оператора (точка с запятой) ";"
 11. Оператор вычитания (минус) "-"
-12. Ключевое слово TRUE
-13. Ключевое слово FALSE
-14. Ключевое слово NULL
+12. Ключевое слово "TRUE"
+13. Ключевое слово "FALSE"
+14. Ключевое слово "NULL"
 
 ## Разработка грамматики
 ```
 1.	<Def> → <Letter> <NameVec>
-2.	<NameVec> → <Letter> <NameVec> | < <Arrow>
-3.	<Arrow> → - <RightPart>
-4.	<RightPart> → c <FuncCall> | NULL;
-5.	<FuncCall> → ( <ParamsList>
-6.	<ParamsList> → <Param> <ParamsMore>
-7.	<ParamsMore> → , <Param> <ParamsMore> | );
-8.	<Param> → <NumberParam> | <StringParam> | TRUE | FALSE | NULL
-9.	<NumberParam> → - <UnsignedNumber> | <UnsignedNumber>
-10.	<UnsignedNumber> → <UnsignedInt> | <UnsignedInt> . <UnsignedInt>
-11.	<UnsignedInt> → <Digit> <UnsignedInt> | <Digit>
-12.	<StringParam> → " <CharSeq>
-13.	<CharSeq> → <Letter> <CharSeq> | <Digit> <CharSeq> | <Symbol> <CharSeq> | "
+2.	<NameVec> → <Letter> <NameVec> | “<” <Arrow>
+3.	<Arrow> → “-“ <RightPart>
+4.	<RightPart> → “c” <FuncCall> | “NULL;”
+5.	<FuncCall> → “(“ <Param>
+6.	<Param> → “-“ <UnsignedInt>, <Digit> <Int>, “"” <CharSeq> | “TRUE” <Param> | “FALSE” <Param> | “NULL” <Param> | “);”
+7.	<UnsignedInt> → <Digit> <Int> | <Digit> <EndParams>
+8.	<Int> → <Digit> <Int> | “.” <SecondPart> | <Digit> <EndParams> | “,” <Param>
+9.	<SecondPart> → <Digit> <SecondPart> | <Digit> <EndParams> | “,” <Param>
+10.	<CharSeq> → <Letter> <CharSeq> | <Digit> <CharSeq> | <Symbol> <CharSeq> | “",” <Param> | “"” <EndParams> 
+11.	<EndParams> → “);”
+
 •	<Letter> → “a” | “b” | ... | “z” | “A” | ... | “Z”
 •	<Digit> → “0” | “1” | ... | “9”
 •	<Symbol> → “ “ | “!” | “@” | “#” | “$” | “%” | “^” | “&” | “*” | “(“ | “)” | “-“ | “+” | “=” | “[“ | “]” | “{“ | “}” | “\” | “|” | “;” | “:” | “'” | “,” | “.” | “/” | “?” | “>” | “<” | “~” | “`” | “_”
@@ -58,7 +64,7 @@ x <- NULL;
 G[<Z>]:
 •	Z = ‹Def›;
 •	VT = {a, b, c, ..., z, A, B, C, ..., Z, , ! , @ , # , $ , % , ^ , & , * , ( , ) , - , + , = , [ , ] , { , } , \ , , , ; , : , ' , , , . , / , ? , > , < , ~ , ` , _ , , 0, 1, 2, ..., 9};
-•	VN = {<Def>, <NameVec>, <Arrow>, <RightPart>, <FuncCall>, <ParamsList>, <ParamsMore>, <Param>, <NumberParam>, <UnsignedNumber>, <UnsignedInt>, <StringParam>, <CharSeq>}.
+•	VN = {<Def>, <NameVec>, <Arrow>, <RightPart>, <FuncCall>, <Param>, <UnsignedInt>, <Int>, <SecondPart>, <CharSeq>, <EndParams>}.
 ```
 
 ## Классификация грамматики (по Хомскому)
@@ -67,7 +73,7 @@ G[<Z>]:
 ## Метод анализа
 Граф автоматной грамматики
 
-![alt text](d.drawio.png)
+![alt text](g1.drawio.png)
 
 ## Диагностика и нейтрализация синтаксических ошибок
 В данной работе используется алгоритм нейтрализации синтаксических ошибок методом Айронса. После обнаружения недопустимой лексемы анализатор передвигается к безопасной точке программы - известной лексеме.

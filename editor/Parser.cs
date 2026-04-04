@@ -74,6 +74,8 @@ namespace editor
             {
                 // Успех
             }
+            else if (tokens.Count == 0)
+                return errors;
             else if (currentState != State.Error && currentState != State.End)
             {
                 AddError("<конец файла>", currentLine, currentPos, "Неожиданный конец строки. Возможно, пустая строка, не закрыта скобка или отсутствует ';'");

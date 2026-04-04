@@ -40,6 +40,8 @@ namespace editor
             Right
         }
 
+        private bool CommaParam = false;
+
         private State currentState;
         private Stack<StackSymbol> stack;
         private List<Token> tokens;
@@ -74,8 +76,8 @@ namespace editor
             {
                 // Успех
             }
-            //else if (tokens.Count == 0)
-                //return errors; // Пустой файл - не ошибка
+            else if (tokens.Count == 0)
+                return errors;
             else if (currentState != State.Error && currentState != State.End)
             {
                 AddError("<конец файла>", currentLine, currentPos, "Неожиданный конец строки. Возможно, не закрыта скобка или отсутствует ';'");
@@ -83,7 +85,6 @@ namespace editor
 
             return errors;
         }
-
 
         private void ProcessToken(Token token)
         {
@@ -105,7 +106,7 @@ namespace editor
                     break;
 
                 case State.InNameVec:
-                    // <NameVec> → <Letter> <NameVec> | < <Arrow>
+                    // <NameVec> → <Letter> <NameVec> | "<" <Arrow>
                     if (token.Value == "<-")
                     {
                         currentState = State.ExpectCOrNull;
@@ -124,7 +125,7 @@ namespace editor
                     break;
 
                 case State.ExpectCOrNull:
-                    // <RightPart> → c <FuncCall> | NULL;
+                    // <RightPart> → "c" <FuncCall> | "NULL;"
                     if (token.Value == "c" && token.Type == "id")
                     {
                         currentState = State.InFuncCall;
@@ -148,7 +149,7 @@ namespace editor
                     break;
 
                 case State.InFuncCall:
-                    // <FuncCall> → ( <ParamsList>
+                    // <FuncCall> → "(" <Param> | “();”
                     if (token.Value == "(")
                     {
                         stack.Push(StackSymbol.Left);
@@ -164,19 +165,26 @@ namespace editor
                     break;
 
                 case State.InParams:
-                    // <ParamsList> → <Param> <ParamsMore>
+                    // <Param> → “-“ <UnsignedInt>, <Digit> <Int>, “"” <CharSeq> | “TRUE,” | “FALSE,” | “NULL,” | “TRUE);” | “FALSE);” | “NULL);”
                     if (token.Value == ")")
                     {
-                        if (stack.Count > 0 && stack.Peek() == StackSymbol.Left)
+                        if (CommaParam)
+                        {
+                            CommaParam = false;
+                            AddError(token.Value, token.Line, token.StartPos,
+                                "Неожиданная ')'. После запятой ожидается параметр (число, строка, TRUE, FALSE, NULL)");
+                            RecoverToSyncPoint();
+                        }
+                        else if (stack.Count > 0 && stack.Peek() == StackSymbol.Left)
                         {
                             stack.Pop();
-                            currentState = State.End;
+                            currentState = State.ExpectSemicolon;
                             position++;
                         }
                         else
                         {
                             AddError(token.Value, token.Line, token.StartPos,
-                                "Неожиданная ')'");
+                                "Неожиданная ')'. После запятой ожидается параметр (число, строка, TRUE, FALSE, NULL)");
                             RecoverToSyncPoint();
                         }
                     }
@@ -189,6 +197,7 @@ namespace editor
                         if (token.Value == "-")
                         {
                             currentState = State.InNegativeNumber;
+                            position++;
                         }
                         else
                         {
@@ -200,7 +209,7 @@ namespace editor
                         currentState = State.AfterParam;
                         position++;
                     }
-                    else if (token.Value == "TRUE" || token.Value == "FALSE" || token.Value == "NULL")
+                    else if (token.Value == "TRUE" || token.Value == "NULL" || token.Value == "FALSE")
                     {
                         currentState = State.AfterParam;
                         position++;
@@ -208,13 +217,16 @@ namespace editor
                     else
                     {
                         AddError(token.Value, token.Line, token.StartPos,
-                            $"Ожидается параметр (число, строка, TRUE, FALSE, NULL), найдено '{token.Value}'");
+                            $"Ожидается параметр (число, строка, TRUE, FALSE, NULL) или закрытие скобки, найдено '{token.Value}'");
                         RecoverToNextParam();
                     }
                     break;
 
                 case State.InNumber:
-                    // <NumberParam> → <UnsignedNumber>
+                    /*
+                      <Int> → <Digit> <Int> | “.” <SecondPart> | <Digit> <EndParams> | “,” <Param>
+                      <SecondPart> → <Digit> <SecondPart> | <Digit> <EndParams> | “,” <Param>
+                     */
                     if (IsNumber(token))
                     {
                         if (token.Value.Contains("."))
@@ -238,6 +250,7 @@ namespace editor
                     else if (token.Value == ",")
                     {
                         currentState = State.InParams;
+                        CommaParam = true;
                         position++;
                     }
                     else if (token.Value == ")")
@@ -255,10 +268,9 @@ namespace editor
                     break;
 
                 case State.InNegativeNumber:
-                    // <NumberParam> → - <UnsignedNumber>
+                    // <UnsignedInt> → <Digit> <Int> | <Digit> <EndParams>
                     if (IsNumber(token))
                     {
-                        stack.Push(StackSymbol.Right);
                         currentState = State.AfterParam;
                         position++;
                     }
@@ -271,10 +283,11 @@ namespace editor
                     break;
 
                 case State.AfterParam:
-                    // <ParamsMore> → , <Param> <ParamsMore> | )
+                    // “,” <Param> | <_> <EndParams>
                     if (token.Value == ",")
                     {
                         currentState = State.InParams;
+                        CommaParam = true;
                         position++;
                     }
                     else if (token.Value == "(пробел)")
@@ -305,11 +318,6 @@ namespace editor
                     break;
 
                 case State.ExpectSemicolon:
-                    if (token.Value == "(" || token.Value == ")")
-                    {
-                        AddError(token.Value, token.Line, token.StartPos,
-                            $"Неожиданная '{token.Value}'");
-                    }
                     if (token.Value == ";")
                     {
                         currentState = State.End;
@@ -374,6 +382,7 @@ namespace editor
                             stack.Pop();
                         }
                         currentState = State.InParams;
+                        stack.Push(StackSymbol.Left);
                         position++;
                         break;
 
@@ -387,6 +396,7 @@ namespace editor
                             stack.Pop();
                         }
                         currentState = State.ExpectSemicolon;
+                        stack.Push(StackSymbol.Right);
                         position++;
                         break;
 
@@ -424,7 +434,8 @@ namespace editor
                     {
                         stack.Pop();
                     }
-                    currentState = State.End;
+                    currentState = State.ExpectSemicolon;
+                    stack.Push(StackSymbol.Right);
                     position++;
                 }
             }

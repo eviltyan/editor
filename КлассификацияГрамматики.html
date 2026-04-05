@@ -1,27 +1,72 @@
-<!DOCTYPE HTML>
-<html>
+<!DOCTYPE html>
+<html lang="ru">
 <head>
-    <title>Классификация грамматики</title>
+    <meta charset="UTF-8">
+    <title>Классификация Хомского</title>
+    <style>
+        body {
+            background: #ffffff;
+            margin: 0;
+            padding: 30px;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #000000;
+        }
+        .content {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        p, li {
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            font-size: 16px;
+        }
+        pre {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            background: #f4f4f4;
+            padding: 15px;
+            border-left: 4px solid #333;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .grammar-rule {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 15px;
+            margin: 8px 0;
+        }
+        strong {
+            font-weight: 600;
+        }
+    </style>
 </head>
 <body>
-    <h1>Классификация грамматики</h1>
-    <p> 
-        Согласно классификации Хомского, грамматика G[‹Def›] является автоматной. <br>
-Правила (1) – (5), (11) – (13) относятся к классу праворекурсивных продукций (A → aB | a | ε): <br>
-1.  &lt;Def&gt; → &lt;Letter&gt; &lt;NameVec&gt; <br> 
-2.  &lt;NameVec&gt; → &lt;Letter&gt; &lt;NameVec&gt; | &lt; &lt;Arrow&gt; <br>
-3.  &lt;Arrow&gt; → - &lt;RightPart&gt; <br>
-4.  &lt;RightPart&gt; → c &lt;FuncCall&gt; | NULL; <br>
-5.  &lt;FuncCall&gt; → ( &lt;ParamsList&gt; <br>
-11. &lt;UnsignedInt&gt; → &lt;Digit&gt; &lt;UnsignedInt&gt; | &lt;Digit&gt; <br>
-12. &lt;StringParamv → " &lt;CharSeq&gt; <br>
-13. &lt;CharSeq&gt; → &lt;Letter&gt; &lt;CharSeq&gt; | &lt;Digit&gt; &lt;CharSeq&gt; | &lt;Symbol&gt; &lt;CharSeq&gt; | " <br>
-Отметим, что правила должны быть либо только леворекурсивными, либо только праворекурсивными. Комбинация тех и других не допускается. Однако данная грамматика <br> содержит одновременно леворекурсивные и праворекурсивные продукции (6)-(10), и, следовательно, не является полностью автоматной. <br>
-6.  &lt;ParamsList&gt; → &lt;Param&gt; &lt;ParamsMore&gt; <br>
-7.  &lt;ParamsMore&gt; → , &lt;Param&gt; &lt;ParamsMore&gt; | ); <br>
-8.  &lt;Param&gt; → &lt;NumberParam&gt; | &lt;StringParam&gt; | TRUE | FALSE | NULL <br>
-9.  &lt;NumberParam&gt; → - &lt;UnsignedNumber&gt; | &lt;UnsignedNumber&gt; <br>
-10. &lt;UnsignedNumber&gt; → &lt;UnsignedInt&gt; | &lt;UnsignedInt&gt; . &lt;UnsignedInt&gt; <br>
-    </p>
+<div class="content">
+
+<h1>Классификация Хомского</h1>
+
+<p>Согласно классификации Хомского, грамматика G[‹Def›] является автоматной.</p>
+
+<p>Правила (1) – (14) относятся к классу праворекурсивных продукций (A → aB | a | ε):</p>
+
+<pre>
+1.  &lt;Def&gt; → &lt;Letter&gt; &lt;NameVec&gt;
+2.  &lt;NameVec&gt; → &lt;Letter&gt; &lt;NameVec&gt; | “&lt;” &lt;Arrow&gt;
+3.  &lt;Arrow&gt; → “-“ &lt;RightPart&gt;
+4.  &lt;RightPart&gt; → “c” &lt;FuncCall&gt; | “NULL;”
+5.  &lt;FuncCall&gt; → “(“ &lt;Param&gt; | “();”
+6.  &lt;Param&gt; → “-“ &lt;UnsignedInt&gt; | &lt;Digit&gt; &lt;Int&gt; | “"” &lt;CharSeq&gt; | “TRUE,” | “FALSE,” | “NULL,” | “TRUE);” | “FALSE);” | “NULL);”
+7.  &lt;UnsignedInt&gt; → &lt;Digit&gt; &lt;Int&gt; | &lt;Digit&gt; &lt;EndParams&gt;
+8.  &lt;Int&gt; → &lt;Digit&gt; &lt;Int&gt; | “.” &lt;SecondPart&gt; | &lt;Digit&gt; &lt;EndParams&gt; | “,” &lt;Param&gt;
+9.  &lt;SecondPart&gt; → &lt;Digit&gt; &lt;SecondPart&gt; | &lt;Digit&gt; &lt;EndParams&gt; | “,” &lt;Param&gt;
+10. &lt;CharSeq&gt; → &lt;Letter&gt; &lt;CharSeq&gt; | &lt;Digit&gt; &lt;CharSeq&gt; | &lt;Symbol&gt; &lt;CharSeq&gt; | “",” &lt;Param&gt; | “"” &lt;EndParams&gt; 
+11. &lt;EndParams&gt; → “);”
+12. &lt;Letter&gt; → “a” | “b” | ... | “z” | “A” | ... | “Z”
+13. &lt;Digit&gt; → “0” | “1” | ... | “9”
+14. &lt;Symbol&gt; → “ “ | “!” | “@” | “#” | “№” | “`” | “$” | “%” | “^” | “&amp;” | “*” | “(“ | “)” | “-“ | “+” | “=” | “[“ | “]” | “{“ | “}” | “\” | “|” | “;” | “:” | “'” | “,” | “.” | “/” | “?” | “&gt;” | “&lt;” | “~” | “`” | “_”
+</pre>
+
+<p><strong>Отметим</strong>, что правила должны быть либо только леворекурсивными, либо только праворекурсивными. Комбинация тех и других не допускается.</p>
+
+</div>
 </body>
 </html>

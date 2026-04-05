@@ -88,6 +88,7 @@ namespace editor
 
         private void ProcessToken(Token token)
         {
+            
             switch (currentState)
             {
                 case State.Start:
@@ -97,11 +98,16 @@ namespace editor
                         currentState = State.InNameVec;
                         position++;
                     }
+                    else if (token.Value == "(пробел)")
+                    {
+                        position++;
+                    }
                     else
                     {
                         AddError(token.Value, token.Line, token.StartPos,
                             $"Ожидается идентификатор (буква), найдено '{token.Value}'");
-                        RecoverToSyncPoint();
+                        string[] syncTokens = { "<-", "(", ";", ")", "," };
+                        RecoverToSyncPoint(syncTokens);
                     }
                     break;
 
@@ -120,7 +126,8 @@ namespace editor
                     {
                         AddError(token.Value, token.Line, token.StartPos,
                             $"Ожидается '<-', найдено '{token.Value}'");
-                        RecoverToSyncPoint();
+                        string[] syncTokens = { "(", ";", ")", "," };
+                        RecoverToSyncPoint(syncTokens);
                     }
                     break;
 
@@ -144,7 +151,8 @@ namespace editor
                     {
                         AddError(token.Value, token.Line, token.StartPos,
                             $"Ожидается 'c' или 'NULL', найдено '{token.Value}'");
-                        RecoverToSyncPoint();
+                        string[] syncTokens = { "(", ";", ")", "," };
+                        RecoverToSyncPoint(syncTokens);
                     }
                     break;
 
@@ -160,7 +168,8 @@ namespace editor
                     {
                         AddError(token.Value, token.Line, token.StartPos,
                             $"Ожидается '(', найдено '{token.Value}'");
-                        RecoverToSyncPoint();
+                        string[] syncTokens = { ";", ")", "," };
+                        RecoverToSyncPoint(syncTokens);
                     }
                     break;
 
@@ -173,7 +182,8 @@ namespace editor
                             CommaParam = false;
                             AddError(token.Value, token.Line, token.StartPos,
                                 "Неожиданная ')'. После запятой ожидается параметр (число, строка, TRUE, FALSE, NULL)");
-                            RecoverToSyncPoint();
+                            string[] syncTokens = { ";", ")", "," };
+                            RecoverToSyncPoint(syncTokens);
                         }
                         else if (stack.Count > 0 && stack.Peek() == StackSymbol.Left)
                         {
@@ -185,7 +195,8 @@ namespace editor
                         {
                             AddError(token.Value, token.Line, token.StartPos,
                                 "Неожиданная ')'. После запятой ожидается параметр (число, строка, TRUE, FALSE, NULL)");
-                            RecoverToSyncPoint();
+                            string[] syncTokens = { ";", ")", "," };
+                            RecoverToSyncPoint(syncTokens);
                         }
                     }
                     else if (token.Value == "(пробел)")
@@ -306,7 +317,8 @@ namespace editor
                         {
                             AddError(token.Value, token.Line, token.StartPos,
                                 "Неожиданная ')'");
-                            RecoverToSyncPoint();
+                            string[] syncTokens = { ";", ")", "," };
+                            RecoverToSyncPoint(syncTokens);
                         }
                     }
                     else
@@ -327,29 +339,20 @@ namespace editor
                     {
                         AddError(token.Value, token.Line, token.StartPos,
                             $"Ожидается ';', найдено '{token.Value}'");
-                        RecoverToSyncPoint();
+                        string[] syncTokens = { ";" };
+                        RecoverToSyncPoint(syncTokens);
                     }
                     break;
 
                 case State.End:
-                    if (tokens[position - 1].Line != token.Line)
-                    {
-                        currentState = State.Start;
-                        break;
-                    }
-                    if (position < tokens.Count)
-                    {
-                        AddError(token.Value, token.Line, token.StartPos,
-                            $"Неожиданный символ после завершения выражения: '{token.Value}'");
-                        currentState = State.Error;
-                    }
+                    currentState = State.Start;
                     break;
             }
         }
 
-        private void RecoverToSyncPoint()
+        private void RecoverToSyncPoint(string[] syncTokens)
         {
-            string[] syncTokens = { "<-", "(", ";", ")", ","};
+            //string[] syncTokens = { "<-", "(", ";", ")", ","};
 
             while (position < tokens.Count && !syncTokens.Contains(tokens[position].Value))
             {

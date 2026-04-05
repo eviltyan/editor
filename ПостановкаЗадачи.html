@@ -1,22 +1,77 @@
-<!DOCTYPE HTML>
-<html>
+<!DOCTYPE html>
+<html lang="ru">
 <head>
+    <meta charset="UTF-8">
     <title>Постановка задачи</title>
+    <style>
+        body {
+            background: #ffffff;
+            margin: 0;
+            padding: 30px;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #000000;
+        }
+        .content {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        p {
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            font-size: 16px;
+            margin: 15px 0;
+        }
+        .example-list {
+            margin: 15px 0 15px 30px;
+            padding-left: 0;
+            list-style-type: none;
+        }
+        .example-list li {
+            margin: 8px 0;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            background: #f4f4f4;
+            padding: 5px 10px;
+            border-left: 3px solid #333;
+        }
+        strong {
+            font-weight: 600;
+        }
+        .code-inline {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+    </style>
 </head>
 <body>
+<div class="content">
     <h1>Постановка задачи</h1>
+    
     <p> 
-        Векторы – это фундаментальные структуры данных в языке R, представляющие собой упорядоченные наборы элементов одного типа. Векторы могут содержать числовые, строковые, логические или значения NULL. Объявление векторов в R осуществляется с помощью функции c(). <br>
-Для описания векторов в языке R используется оператор присваивания <-. Формат записи: «имя_вектора <- выражение;».<br>
-Примеры:<br>
-1.  Вектор, созданный с помощью конкатенации одного типа данных: «nums <- c(1, 2, 3, 4, 5);». Функция c() объединяет переданные элементы в вектор.<br>
-2.  Вектор, созданный с помощью конкатенации разных числовых типов данных: «numbers <- c(1, 2.05, -3, -4342.122, 5);». Функция c() приведет тип данных integer к numeric.<br>
-3.  Вектор, созданный с помощью конкатенации разных типов данных: «vec <- c(1, “hello”, TRUE, 4.5, NULL);». Функция c() приведет элементы вектора к наиболее общему типу, в данном случае к character.<br>
-В связи с разработанной автоматной грамматикой G[<F>] синтаксический анализатор (парсер) создания функции будет считать верными следующие записи функций:<br>
-1)  languages <- c("Swift", "Java", "R"); <br>
-2)  numbers <- c(1, 2, 3, 4, 5); <br>
-3)  x <- c(1, 5.4, TRUE, "hello"); <br>
-4)  x <- NULL;<br>
+        Векторы – это фундаментальные структуры данных в языке R, представляющие собой упорядоченные наборы элементов одного типа. Векторы могут содержать числовые, строковые, логические или значения NULL. Объявление векторов в R осуществляется с помощью функции <span class="code-inline">c()</span>. <br><br>
+        Для описания векторов в языке R используется оператор присваивания <span class="code-inline">&lt;-</span>. Формат записи: «имя_вектора &lt;- выражение;».<br><br>
+        Примеры:<br>
     </p>
+    
+    <ul class="example-list">
+        <li>1. Вектор, созданный с помощью конкатенации одного типа данных: <span class="code-inline">nums &lt;- c(1, 2, 3, 4, 5);</span>. Функция <span class="code-inline">c()</span> объединяет переданные элементы в вектор.</li>
+        <li>2. Вектор, созданный с помощью конкатенации разных числовых типов данных: <span class="code-inline">numbers &lt;- c(1, 2.05, -3, -4342.122, 5);</span>. Функция <span class="code-inline">c()</span> приведет тип данных integer к numeric.</li>
+        <li>3. Вектор, созданный с помощью конкатенации разных типов данных: <span class="code-inline">vec &lt;- c(1, "hello", TRUE, 4.5, NULL);</span>. Функция <span class="code-inline">c()</span> приведет элементы вектора к наиболее общему типу, в данном случае к character.</li>
+    </ul>
+    
+    <p>
+        В связи с разработанной автоматной грамматикой G[&lt;F&gt;] синтаксический анализатор (парсер) создания функции будет считать верными следующие записи функций:
+    </p>
+    
+    <ul class="example-list">
+        <li>1) <span class="code-inline">languages &lt;- c("Swift", "Java", "R");</span></li>
+        <li>2) <span class="code-inline">numbers &lt;- c(1, 2, 3, 4, 5);</span></li>
+        <li>3) <span class="code-inline">x &lt;- c(1, 5.4, TRUE, "hello");</span></li>
+        <li>4) <span class="code-inline">x &lt;- NULL;</span></li>
+    </ul>
+</div>
 </body>
 </html>

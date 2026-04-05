@@ -799,11 +799,15 @@ namespace editor
 
         private void Analyze()
         {
+            RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
+            TabPage currentPage = tabControl1.SelectedTab;
+            SplitContainer splitReadOnly = currentPage.Controls[0] as SplitContainer;
+            DataGridView dataGridView = splitReadOnly.Panel2.Controls[0] as DataGridView;
             try
             {
                 Application.DoEvents();
 
-                string input = richTextBoxEdit.Text;
+                string input = editBox.Text;
 
                 dataGridView.Rows.Clear();
 

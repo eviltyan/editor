@@ -47,7 +47,12 @@
             tabPage1 = new TabPage();
             splitContainer1 = new SplitContainer();
             richTextBoxEdit = new RichTextBox();
-            richTextBoxReadOnly = new RichTextBox();
+            splitContainer2 = new SplitContainer();
+            dataGridView = new DataGridView();
+            splitContainer3 = new SplitContainer();
+            label = new Label();
+            labelSt = new Label();
+            comboBox = new ComboBox();
             menuStrip1 = new MenuStrip();
             файлToolStripMenuItem = new ToolStripMenuItem();
             создатьToolStripMenuItem = new ToolStripMenuItem();
@@ -83,6 +88,15 @@
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
             splitContainer1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainer2).BeginInit();
+            splitContainer2.Panel1.SuspendLayout();
+            splitContainer2.Panel2.SuspendLayout();
+            splitContainer2.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dataGridView).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)splitContainer3).BeginInit();
+            splitContainer3.Panel1.SuspendLayout();
+            splitContainer3.Panel2.SuspendLayout();
+            splitContainer3.SuspendLayout();
             menuStrip1.SuspendLayout();
             SuspendLayout();
             // 
@@ -116,6 +130,7 @@
             tableLayoutPanel1.Controls.Add(openButton, 1, 0);
             tableLayoutPanel1.Controls.Add(createButton, 0, 0);
             tableLayoutPanel1.Controls.Add(tabControl1, 0, 1);
+            tableLayoutPanel1.Controls.Add(comboBox, 12, 0);
             tableLayoutPanel1.Dock = DockStyle.Fill;
             tableLayoutPanel1.Location = new Point(0, 24);
             tableLayoutPanel1.Name = "tableLayoutPanel1";
@@ -342,9 +357,9 @@
             // 
             // splitContainer1.Panel2
             // 
-            splitContainer1.Panel2.Controls.Add(richTextBoxReadOnly);
+            splitContainer1.Panel2.Controls.Add(splitContainer2);
             splitContainer1.Size = new Size(780, 452);
-            splitContainer1.SplitterDistance = 240;
+            splitContainer1.SplitterDistance = 239;
             splitContainer1.TabIndex = 0;
             // 
             // richTextBoxEdit
@@ -352,22 +367,82 @@
             richTextBoxEdit.Dock = DockStyle.Fill;
             richTextBoxEdit.Location = new Point(0, 0);
             richTextBoxEdit.Name = "richTextBoxEdit";
-            richTextBoxEdit.Size = new Size(780, 240);
+            richTextBoxEdit.Size = new Size(780, 239);
             richTextBoxEdit.TabIndex = 0;
             richTextBoxEdit.Text = "";
             richTextBoxEdit.TextChanged += RichTextBox_TextChanged;
             // 
-            // richTextBoxReadOnly
+            // splitContainer2
             // 
-            richTextBoxReadOnly.BackColor = SystemColors.Window;
-            richTextBoxReadOnly.Dock = DockStyle.Fill;
-            richTextBoxReadOnly.Location = new Point(0, 0);
-            richTextBoxReadOnly.Name = "richTextBoxReadOnly";
-            richTextBoxReadOnly.ReadOnly = true;
-            richTextBoxReadOnly.Size = new Size(780, 208);
-            richTextBoxReadOnly.TabIndex = 0;
-            richTextBoxReadOnly.TabStop = false;
-            richTextBoxReadOnly.Text = "";
+            splitContainer2.Dock = DockStyle.Fill;
+            splitContainer2.Location = new Point(0, 0);
+            splitContainer2.Name = "splitContainer2";
+            splitContainer2.Orientation = Orientation.Horizontal;
+            // 
+            // splitContainer2.Panel1
+            // 
+            splitContainer2.Panel1.Controls.Add(dataGridView);
+            // 
+            // splitContainer2.Panel2
+            // 
+            splitContainer2.Panel2.Controls.Add(splitContainer3);
+            splitContainer2.Size = new Size(780, 209);
+            splitContainer2.SplitterDistance = 178;
+            splitContainer2.TabIndex = 3;
+            // 
+            // dataGridView
+            // 
+            dataGridView.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridView.Dock = DockStyle.Fill;
+            dataGridView.Location = new Point(0, 0);
+            dataGridView.Name = "dataGridView";
+            dataGridView.Size = new Size(780, 178);
+            dataGridView.TabIndex = 0;
+            // 
+            // splitContainer3
+            // 
+            splitContainer3.Dock = DockStyle.Fill;
+            splitContainer3.Location = new Point(0, 0);
+            splitContainer3.Name = "splitContainer3";
+            // 
+            // splitContainer3.Panel1
+            // 
+            splitContainer3.Panel1.Controls.Add(label);
+            // 
+            // splitContainer3.Panel2
+            // 
+            splitContainer3.Panel2.Controls.Add(labelSt);
+            splitContainer3.Size = new Size(780, 27);
+            splitContainer3.SplitterDistance = 150;
+            splitContainer3.TabIndex = 0;
+            // 
+            // label
+            // 
+            label.AutoSize = true;
+            label.Dock = DockStyle.Fill;
+            label.Location = new Point(0, 0);
+            label.Name = "label";
+            label.Size = new Size(38, 15);
+            label.TabIndex = 2;
+            label.Text = "label1";
+            // 
+            // labelSt
+            // 
+            labelSt.AutoSize = true;
+            labelSt.Dock = DockStyle.Fill;
+            labelSt.Location = new Point(0, 0);
+            labelSt.Name = "labelSt";
+            labelSt.Size = new Size(38, 15);
+            labelSt.TabIndex = 17;
+            labelSt.Text = "label1";
+            // 
+            // comboBox
+            // 
+            comboBox.FormattingEnabled = true;
+            comboBox.Location = new Point(555, 3);
+            comboBox.Name = "comboBox";
+            comboBox.Size = new Size(238, 23);
+            comboBox.TabIndex = 16;
             // 
             // menuStrip1
             // 
@@ -530,6 +605,7 @@
             пускToolStripMenuItem.Name = "пускToolStripMenuItem";
             пускToolStripMenuItem.Size = new Size(46, 20);
             пускToolStripMenuItem.Text = "Пуск";
+            пускToolStripMenuItem.Click += пускToolStripMenuItem_Click;
             // 
             // справкаToolStripMenuItem
             // 
@@ -541,14 +617,14 @@
             // вызовСправкиToolStripMenuItem
             // 
             вызовСправкиToolStripMenuItem.Name = "вызовСправкиToolStripMenuItem";
-            вызовСправкиToolStripMenuItem.Size = new Size(180, 22);
+            вызовСправкиToolStripMenuItem.Size = new Size(156, 22);
             вызовСправкиToolStripMenuItem.Text = "Вызов справки";
             вызовСправкиToolStripMenuItem.Click += вызовСправкиToolStripMenuItem_Click;
             // 
             // оПрограммеToolStripMenuItem
             // 
             оПрограммеToolStripMenuItem.Name = "оПрограммеToolStripMenuItem";
-            оПрограммеToolStripMenuItem.Size = new Size(180, 22);
+            оПрограммеToolStripMenuItem.Size = new Size(156, 22);
             оПрограммеToolStripMenuItem.Text = "О программе";
             оПрограммеToolStripMenuItem.Click += оПрограммеToolStripMenuItem_Click;
             // 
@@ -571,6 +647,17 @@
             splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
             splitContainer1.ResumeLayout(false);
+            splitContainer2.Panel1.ResumeLayout(false);
+            splitContainer2.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splitContainer2).EndInit();
+            splitContainer2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)dataGridView).EndInit();
+            splitContainer3.Panel1.ResumeLayout(false);
+            splitContainer3.Panel1.PerformLayout();
+            splitContainer3.Panel2.ResumeLayout(false);
+            splitContainer3.Panel2.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainer3).EndInit();
+            splitContainer3.ResumeLayout(false);
             menuStrip1.ResumeLayout(false);
             menuStrip1.PerformLayout();
             ResumeLayout(false);
@@ -624,6 +711,11 @@
         private TabPage tabPage1;
         private SplitContainer splitContainer1;
         private RichTextBox richTextBoxEdit;
-        private RichTextBox richTextBoxReadOnly;
+        private DataGridView dataGridView;
+        private ComboBox comboBox;
+        private Label label;
+        private Label labelSt;
+        private SplitContainer splitContainer2;
+        private SplitContainer splitContainer3;
     }
 }

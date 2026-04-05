@@ -1,15 +1,19 @@
+using System.DirectoryServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace editor
 {
     public partial class Form1 : Form
     {
-        private int newDocumentCounter = 2; // По умолчанию при запуске программы открыт "Документ 1"
+        private int newDocumentCounter = 2;
         private Dictionary<TabPage, DocumentInfo> documentInfo = new Dictionary<TabPage, DocumentInfo>();
 
         private Font tabFont;
         private Dictionary<TabPage, Rectangle> closeButtons = new Dictionary<TabPage, Rectangle>();
+
+        private List<SearchResult> currentResults;
 
         public Form1()
         {
@@ -33,6 +37,32 @@ namespace editor
 
             info.History.AddState(new TextState(editBox.Text, editBox.SelectionStart, editBox.SelectionLength));
             documentInfo[tabControl1.SelectedTab] = info;
+
+            dataGridView.Dock = DockStyle.Fill;
+            dataGridView.ReadOnly = true;
+            dataGridView.BackColor = Color.White;
+            dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dataGridView.AllowUserToAddRows = false;
+
+            dataGridView.Columns.Add("Substring", "Найденная подстрока");
+            dataGridView.Columns.Add("Line", "Строка");
+            dataGridView.Columns.Add("Position", "Позиция в строке");
+            dataGridView.Columns.Add("Length", "Длина");
+            dataGridView.Columns["Substring"].Width = 200;
+            dataGridView.Columns["Line"].Width = 80;
+            dataGridView.Columns["Position"].Width = 100;
+            dataGridView.Columns["Length"].Width = 60;
+
+            dataGridView.SelectionChanged += DataGridView_SelectionChanged;
+
+            comboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+
+            label.Text = "";
+            labelSt.Text = "Готов к работе";
+
+            LoadSampleText();
+            LoadSearchPatterns();
         }
 
         private void createNewDocument()
@@ -50,14 +80,52 @@ namespace editor
             richTextBoxEdit.Dock = DockStyle.Fill;
             richTextBoxEdit.AcceptsTab = true;
 
-            RichTextBox richTextBoxReadOnly = new RichTextBox();
-            richTextBoxReadOnly.Dock = DockStyle.Fill;
-            richTextBoxReadOnly.ReadOnly = true;
-            richTextBoxReadOnly.BackColor = Color.White;
-            richTextBoxReadOnly.TabStop = false;
+            SplitContainer splitContainer2 = new SplitContainer();
+            splitContainer2.Dock = DockStyle.Fill;
+            splitContainer2.Orientation = Orientation.Horizontal;
+            splitContainer2.SplitterDistance = splitContainer2.Height / 5 * 4;
+
+            DataGridView dataGridView = new DataGridView();
+            dataGridView.Dock = DockStyle.Fill;
+            dataGridView.ReadOnly = true;
+            dataGridView.BackColor = Color.White;
+            dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dataGridView.AllowUserToAddRows = false;
+
+            dataGridView.Columns.Add("Substring", "Найденная подстрока");
+            dataGridView.Columns.Add("Line", "Строка");
+            dataGridView.Columns.Add("Position", "Позиция в строке");
+            dataGridView.Columns.Add("Length", "Длина");
+            dataGridView.Columns["Substring"].Width = 200;
+            dataGridView.Columns["Line"].Width = 80;
+            dataGridView.Columns["Position"].Width = 100;
+            dataGridView.Columns["Length"].Width = 60;
+
+            dataGridView.SelectionChanged += DataGridView_SelectionChanged;
+
+            SplitContainer splitContainer3 = new SplitContainer();
+            splitContainer3.Dock = DockStyle.Fill;
+            splitContainer3.Orientation = Orientation.Vertical;
+            splitContainer3.SplitterDistance = 50;
+            splitContainer3.Height = 50;
+
+            Label label = new Label();
+            label.Text = "";
+            label.Dock = DockStyle.Fill;
+            Label labelSt = new Label();
+            labelSt.Text = "Готов к работе";
+            labelSt.Dock = DockStyle.Fill;
 
             splitContainer.Panel1.Controls.Add(richTextBoxEdit);
-            splitContainer.Panel2.Controls.Add(richTextBoxReadOnly);
+            splitContainer.Panel2.Controls.Add(splitContainer2);
+            
+            splitContainer2.Panel1.Controls.Add(dataGridView);
+            splitContainer2.Panel2.Controls.Add(splitContainer3);
+
+            splitContainer3.Panel1.Controls.Add(label);
+            splitContainer3.Panel2.Controls.Add(labelSt);
+
             newPage.Controls.Add(splitContainer);
 
             DocumentInfo info = new DocumentInfo
@@ -324,8 +392,20 @@ namespace editor
                     }
 
                     SplitContainer splitReadOnly = currentPage.Controls[0] as SplitContainer;
-                    RichTextBox readOnlyBox = splitReadOnly.Panel2.Controls[0] as RichTextBox;
-                    readOnlyBox.Clear();
+                    SplitContainer splitD = splitReadOnly.Panel2.Controls[0] as SplitContainer;
+                    DataGridView dataGridView = splitD.Panel1.Controls[0] as DataGridView;
+                    SplitContainer splitlabel = splitD.Panel2.Controls[0] as SplitContainer;
+                    Label label = splitlabel.Panel1.Controls[0] as Label;
+                    Label labelSt = splitlabel.Panel2.Controls[0] as Label;
+
+                    dataGridView.Rows.Clear();
+
+                    dataGridView.SelectionChanged += DataGridView_SelectionChanged;
+
+                    comboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+
+                    label.Text = "";
+                    labelSt.Text = "Готов к работе";
                 }
                 else
                 {
@@ -644,14 +724,12 @@ namespace editor
             RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
             if (editBox == null) return base.ProcessCmdKey(ref msg, keyData);
 
-            // Ctrl+A - Выделить всё
             if (keyData == (Keys.Control | Keys.A))
             {
                 editBox.SelectAll();
                 return true;
             }
 
-            // Ctrl+C - Копировать
             if (keyData == (Keys.Control | Keys.C))
             {
                 if (editBox.SelectionLength > 0)
@@ -659,7 +737,6 @@ namespace editor
                 return true;
             }
 
-            // Ctrl+X - Вырезать
             if (keyData == (Keys.Control | Keys.X))
             {
                 if (editBox.SelectionLength > 0)
@@ -667,7 +744,6 @@ namespace editor
                 return true;
             }
 
-            // Ctrl+V - Вставить
             if (keyData == (Keys.Control | Keys.V))
             {
                 if (Clipboard.ContainsText())
@@ -682,7 +758,7 @@ namespace editor
 
         private void startButton_Click(object sender, EventArgs e)
         {
-            // Будет реализовано позже
+            Start();
         }
 
         private void отменитьToolStripMenuItem_Click(object sender, EventArgs e)
@@ -707,7 +783,7 @@ namespace editor
 
         private void cancelButton_Click(object sender, EventArgs e)
         {
-            UndoAll();
+            ClearHighlights();
         }
 
         private void отменитьВсеИзмененияToolStripMenuItem_Click(object sender, EventArgs e)
@@ -742,6 +818,292 @@ namespace editor
         {
             InfoForm info = new InfoForm("О программе");
             info.Show();
+        }
+
+        private void пускToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Start();
+        }
+     
+        private void LoadSearchPatterns()
+        {
+            Dictionary<string, SearchPatternInfo> patterns = new Dictionary<string, SearchPatternInfo>
+            {
+                {
+                    "SSN (США)",
+                    new SearchPatternInfo
+                    {
+                        Pattern = @"\d{3}-\d{2}-\d{4}",
+                        Description = "Номера социального страхования США в формате XXX-XX-XXXX"
+                    }
+                },
+                {
+                    "MasterCard",
+                    new SearchPatternInfo
+                    {
+                        //Pattern = @"(5[1-5]\d{2}|222[1-9]|22[3-9]\d|2[3-6]\d{2}|27[01]\d|2720)\d{12}",
+                        Pattern = @"(5[1-5]\d{2}|222[1-9]|22[3-9]\d|2[3-6]\d{2}|27[01]\d|2720)\d{12}",
+                        Description = "Номера карт MasterCard (16 цифр)"
+                    }
+                },
+                {
+                    "Даты (MM/DD/YYYY)",
+                    new SearchPatternInfo
+                    {
+                        Pattern = @"(?:(?:0[13578]|1[02])/(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)/(?:0[1-9]|[12]\d|30)|02/(?:0[1-9]|1\d|2[0-8]))/\d{4}|02/29/(?:(?:\d{2}(?:0[48]|[2468][048]|[13579][26]))|(?:[02468][048]00|[13579][26]00))",
+                        Description = "Даты в формате MM/DD/YYYY"
+                    }
+                },
+                {
+                    "Автомат",
+                    new SearchPatternInfo
+                    {
+                        Pattern = "",
+                        Description = "Номера карт MasterCard (16 цифр)"
+                    }
+                }
+            };
+
+            comboBox.DataSource = new BindingSource(patterns, null);
+            comboBox.DisplayMember = "Key";
+            comboBox.ValueMember = "Value";
+        }
+
+        private void LoadSampleText()
+        {
+            string filePath = "../../../../test.txt";
+            string sampleText;
+            using (StreamReader reader = new StreamReader(filePath, true))
+            {
+                sampleText = reader.ReadToEnd();
+            }
+            richTextBoxEdit.Text = sampleText;
+        }
+
+        private void Start()
+        {
+            TabPage currentPage = tabControl1.SelectedTab;
+            RichTextBox richTextBoxEdit = GetEditRichTextBox(currentPage);
+            SplitContainer splitReadOnly = currentPage.Controls[0] as SplitContainer;
+            SplitContainer split = splitReadOnly.Panel2.Controls[0] as SplitContainer;
+            DataGridView dataGridView = split.Panel1.Controls[0] as DataGridView;
+            SplitContainer splitlabel = split.Panel2.Controls[0] as SplitContainer;
+            Label label = splitlabel.Panel1.Controls[0] as Label;
+            Label labelSt = splitlabel.Panel2.Controls[0] as Label;
+
+            dataGridView.Rows.Clear();
+
+            string text = richTextBoxEdit.Text;
+
+            ClearHighlights();
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                labelSt.Text = "Ошибка: Нет данных для поиска";
+                MessageBox.Show("Нет данных для поиска. Введите текст в редактор.",
+                    "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var selectedItem = comboBox.SelectedItem as KeyValuePair<string, SearchPatternInfo>?;
+            if (!selectedItem.HasValue)
+            {
+                labelSt.Text = "Ошибка: Выберите тип поиска";
+                return;
+            }
+
+            string patternName = selectedItem.Value.Key;
+            SearchPatternInfo patternInfo = selectedItem.Value.Value;
+
+            try
+            {
+                PerformSearch(text, patternInfo.Pattern, patternName);
+                labelSt.Text = $"Поиск завершен. Тип: {patternName}";
+            }
+            catch (Exception ex)
+            {
+                labelSt.Text = $"Ошибка: {ex.Message}";
+                MessageBox.Show($"Ошибка при выполнении поиска: {ex.Message}",
+                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void PerformSearch(string text, string pattern, string patternName)
+        {
+            TabPage currentPage = tabControl1.SelectedTab;
+            SplitContainer splitReadOnly = currentPage.Controls[0] as SplitContainer;
+            SplitContainer split = splitReadOnly.Panel2.Controls[0] as SplitContainer;
+            DataGridView dataGridView = split.Panel1.Controls[0] as DataGridView;
+            SplitContainer splitlabel = split.Panel2.Controls[0] as SplitContainer;
+            Label label = splitlabel.Panel1.Controls[0] as Label;
+            Label labelSt = splitlabel.Panel2.Controls[0] as Label;
+
+            currentResults = new List<SearchResult>();
+            int totalMatches = 0;
+            string[] lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+
+            if (patternName == "Автомат")
+            {
+                totalMatches = SearchMasterCardAutomaton(lines, text);
+            }
+            else
+            {
+                RegexOptions options = RegexOptions.IgnoreCase | RegexOptions.Multiline;
+                Regex regex = new Regex(pattern, options);
+
+                for (int lineNumber = 0; lineNumber < lines.Length; lineNumber++)
+                {
+                    string line = lines[lineNumber];
+                    MatchCollection matches = regex.Matches(line);
+
+                    foreach (Match match in matches)
+                    {
+                        totalMatches++;
+                        int globalPosition = GetGlobalPosition(text, lineNumber, match.Index);
+
+                        var result = new SearchResult
+                        {
+                            Substring = match.Value,
+                            LineNumber = lineNumber + 1,
+                            PositionInLine = match.Index + 1,
+                            GlobalPosition = globalPosition,
+                            Length = match.Length,
+                            LineText = line
+                        };
+
+                        currentResults.Add(result);
+
+                        dataGridView.Rows.Add(
+                            result.Substring,
+                            result.LineNumber,
+                            result.PositionInLine,
+                            result.Length
+                        );
+                    }
+                }
+            }
+
+            label.Text = $"Найдено: {totalMatches}";
+
+            if (totalMatches == 0)
+            {
+                labelSt.Text = $"По типу '{patternName}' совпадений не найдено";
+                MessageBox.Show("Совпадений не найдено.", "Результат поиска",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                labelSt.Text = $"Найдено {totalMatches} совпадений по типу '{patternName}'";
+            }
+        }
+
+        private int GetGlobalPosition(string text, int lineNumber, int positionInLine)
+        {
+            string[] lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            int globalPos = 0;
+
+            for (int i = 0; i < lineNumber; i++)
+            {
+                globalPos += lines[i].Length;
+                if (i < lines.Length - 1)
+                {
+                    if (text.Contains("\r\n"))
+                        globalPos += 2;
+                    else
+                        globalPos += 1;
+                }
+            }
+
+            return globalPos + positionInLine;
+        }
+
+        private void DataGridView_SelectionChanged(object sender, EventArgs e)
+        {
+            TabPage currentPage = tabControl1.SelectedTab;
+            SplitContainer splitReadOnly = currentPage.Controls[0] as SplitContainer;
+            SplitContainer split = splitReadOnly.Panel2.Controls[0] as SplitContainer;
+            DataGridView dataGridView = split.Panel1.Controls[0] as DataGridView;
+            SplitContainer splitlabel = split.Panel2.Controls[0] as SplitContainer;
+            Label label = splitlabel.Panel1.Controls[0] as Label;
+            Label labelSt = splitlabel.Panel2.Controls[0] as Label;
+            if (dataGridView.SelectedRows.Count == 0 || currentResults == null)
+                return;
+
+            int selectedIndex = dataGridView.SelectedRows[0].Index;
+            if (selectedIndex >= currentResults.Count)
+                return;
+
+            SearchResult result = currentResults[selectedIndex];
+
+            RichTextBox richTextBoxEdit = GetEditRichTextBox(tabControl1.SelectedTab);
+
+            ClearHighlights();
+
+            richTextBoxEdit.Select(result.GlobalPosition, result.Length);
+            richTextBoxEdit.SelectionBackColor = Color.Yellow;
+            richTextBoxEdit.SelectionColor = Color.Black;
+            richTextBoxEdit.ScrollToCaret();
+
+            labelSt.Text = $"Выделен фрагмент: \"{result.Substring}\" [строка {result.LineNumber}, позиция {result.PositionInLine}]";
+        }
+
+        private void ClearHighlights()
+        {
+            RichTextBox richTextBoxEdit = GetEditRichTextBox(tabControl1.SelectedTab);
+
+            richTextBoxEdit.SelectAll();
+            richTextBoxEdit.SelectionBackColor = Color.White;
+            richTextBoxEdit.DeselectAll();
+        }
+
+        private int SearchMasterCardAutomaton(string[] lines, string fullText)
+        {
+            MasterCardAutomaton automaton = new MasterCardAutomaton();
+            int totalMatches = 0;
+            int globalPos = 0;
+
+            for (int lineNum = 0; lineNum < lines.Length; lineNum++)
+            {
+                string line = lines[lineNum];
+
+                for (int i = 0; i < line.Length; i++)
+                {
+                    if (automaton.ProcessChar(line[i], globalPos + i, out string match, out int matchStart, out int matchLength))
+                    {
+                        totalMatches++;
+
+                        var result = new SearchResult
+                        {
+                            Substring = match,
+                            LineNumber = lineNum + 1,
+                            PositionInLine = i - matchLength + 2,
+                            GlobalPosition = matchStart,
+                            Length = matchLength,
+                            LineText = line
+                        };
+
+                        currentResults.Add(result);
+                        dataGridView.Rows.Add(result.Substring, result.LineNumber, result.PositionInLine, result.Length);
+                    }
+                }
+
+                globalPos += line.Length;
+                if (lineNum < lines.Length - 1)
+                {
+                    if (fullText.Contains("\r\n"))
+                        globalPos += 2;
+                    else
+                        globalPos += 1;
+                }
+            }
+
+            automaton.ProcessChar('\0', globalPos, out string finalMatch, out int finalStart, out int finalLength);
+            if (finalMatch != null)
+            {
+                totalMatches++;
+            }
+
+            return totalMatches;
         }
     }
 }

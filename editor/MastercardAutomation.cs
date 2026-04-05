@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace editor
 {
@@ -41,13 +42,11 @@ namespace editor
             currentMatch = "";
         }
 
-        public bool ProcessChar(char c, int globalPos, out string match, out int matchStart, out int matchLength)
+        public bool ProcessChar(char c, int globalPos, bool isDigit, out string match, out int matchStart, out int matchLength)
         {
             match = null;
             matchStart = -1;
             matchLength = 0;
-
-            bool isDigit = char.IsDigit(c);
 
             if (!isDigit)
             {
@@ -92,7 +91,7 @@ namespace editor
                     else
                     {
                         Reset();
-                        if (c == '5') ProcessChar(c, globalPos, out match, out matchStart, out matchLength);
+                        if (c == '5') ProcessChar(c, globalPos, isDigit, out match, out matchStart, out matchLength);
                     }
                     break;
 
@@ -123,7 +122,7 @@ namespace editor
                     else
                     {
                         Reset();
-                        if (c == '2' || c == '5') ProcessChar(c, globalPos, out match, out matchStart, out matchLength);
+                        if (c == '2' || c == '5') ProcessChar(c, globalPos, isDigit, out match, out matchStart, out matchLength);
                     }
                     break;
 
@@ -215,6 +214,33 @@ namespace editor
                     if (digitCount == 16)
                     {
                         currentState = State.ACCEPT;
+                        match = currentMatch;
+                        matchStart = startPosition;
+                        matchLength = currentMatch.Length;
+                        Reset();
+                        return true;
+                    }
+                    break;
+
+                default:
+                    if (digitCount < 16 && isDigit)
+                    {
+                        currentMatch += c;
+                        digitCount++;
+                        if (digitCount == 16)
+                        {
+                            currentState = State.ACCEPT;
+                            match = currentMatch;
+                            matchStart = startPosition;
+                            matchLength = currentMatch.Length;
+                            Reset();
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        Reset();
+                        if (c == '5' || c == '2') ProcessChar(c, globalPos, isDigit, out match, out matchStart, out matchLength);
                     }
                     break;
             }

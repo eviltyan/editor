@@ -1,3 +1,4 @@
+using System.Diagnostics.Eventing.Reader;
 using System.DirectoryServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -18,7 +19,6 @@ namespace editor
         public Form1()
         {
             InitializeComponent();
-
             tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
             tabControl1.DrawItem += TabControl1_DrawItem;
             tabControl1.MouseDown += TabControl1_MouseDown;
@@ -833,7 +833,7 @@ namespace editor
                     "SSN (США)",
                     new SearchPatternInfo
                     {
-                        Pattern = @"\d{3}-\d{2}-\d{4}",
+                        Pattern = @"(?=(\d{3})-(\d{2})-(\d{4}))",
                         Description = "Номера социального страхования США в формате XXX-XX-XXXX"
                     }
                 },
@@ -841,8 +841,7 @@ namespace editor
                     "MasterCard",
                     new SearchPatternInfo
                     {
-                        //Pattern = @"(5[1-5]\d{2}|222[1-9]|22[3-9]\d|2[3-6]\d{2}|27[01]\d|2720)\d{12}",
-                        Pattern = @"(5[1-5]\d{2}|222[1-9]|22[3-9]\d|2[3-6]\d{2}|27[01]\d|2720)\d{12}",
+                        Pattern = @"(?=(5[1-5]\d{2}|222[1-9]|22[3-9]\d|2[3-6]\d{2}|27[01]\d|2720)(\d{12}))",
                         Description = "Номера карт MasterCard (16 цифр)"
                     }
                 },
@@ -850,7 +849,7 @@ namespace editor
                     "Даты (MM/DD/YYYY)",
                     new SearchPatternInfo
                     {
-                        Pattern = @"(?:(?:0[13578]|1[02])/(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)/(?:0[1-9]|[12]\d|30)|02/(?:0[1-9]|1\d|2[0-8]))/\d{4}|02/29/(?:(?:\d{2}(?:0[48]|[2468][048]|[13579][26]))|(?:[02468][048]00|[13579][26]00))",
+                        Pattern = @"(?=((?:(?:0[13578]|1[02])/(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)/(?:0[1-9]|[12]\d|30)|02/(?:0[1-9]|1\d|2[0-8]))/\d{4}|02/29/(?:(?:\d{2}(?:0[48]|[2468][048]|[13579][26]))|(?:[02468][048]00|[13579][26]00))))",
                         Description = "Даты в формате MM/DD/YYYY"
                     }
                 },
@@ -950,39 +949,122 @@ namespace editor
             {
                 RegexOptions options = RegexOptions.IgnoreCase | RegexOptions.Multiline;
                 Regex regex = new Regex(pattern, options);
+                MatchCollection matches = regex.Matches(text);
 
-                for (int lineNumber = 0; lineNumber < lines.Length; lineNumber++)
+                if (patternName == "MasterCard")
                 {
-                    string line = lines[lineNumber];
-                    MatchCollection matches = regex.Matches(line);
-
                     foreach (Match match in matches)
                     {
-                        totalMatches++;
-                        int globalPosition = GetGlobalPosition(text, lineNumber, match.Index);
+                        string prefix = match.Groups[1].Value;
+                        string rest = match.Groups[2].Value;
+
+                        if (string.IsNullOrEmpty(prefix) || string.IsNullOrEmpty(rest))
+                            continue;
+
+                        string fullCardNumber = prefix + rest;
+
+                        if (fullCardNumber.Length != 16)
+                            continue;
+
+                        int globalPos = match.Index;
+
+                        int lineNumber = GetLineNumber(text, globalPos);
+                        int positionInLine = GetPositionInLine(text, globalPos);
 
                         var result = new SearchResult
                         {
-                            Substring = match.Value,
-                            LineNumber = lineNumber + 1,
-                            PositionInLine = match.Index + 1,
-                            GlobalPosition = globalPosition,
-                            Length = match.Length,
-                            LineText = line
+                            Substring = fullCardNumber,
+                            LineNumber = lineNumber,
+                            PositionInLine = positionInLine,
+                            GlobalPosition = globalPos,
+                            Length = fullCardNumber.Length,
+                            LineText = GetLineAtPosition(text, globalPos)
                         };
 
                         currentResults.Add(result);
-
                         dataGridView.Rows.Add(
                             result.Substring,
                             result.LineNumber,
                             result.PositionInLine,
                             result.Length
                         );
+
+                        totalMatches++;
+                    }
+                }
+                else if (patternName == "SSN (США)")
+                {
+                    foreach (Match match in matches)
+                    {
+                        string part1 = match.Groups[1].Value;
+                        string part2 = match.Groups[2].Value;
+                        string part3 = match.Groups[3].Value;
+
+                        if (!string.IsNullOrEmpty(part1) && !string.IsNullOrEmpty(part2) && !string.IsNullOrEmpty(part3))
+                        {
+                            string fullSSN = $"{part1}-{part2}-{part3}";
+                            int position = match.Index;
+
+                            int lineNum = GetLineNumber(text, position);
+                            int posInLine = GetPositionInLine(text, position);
+
+                            var result = new SearchResult
+                            {
+                                Substring = fullSSN,
+                                LineNumber = lineNum,
+                                PositionInLine = posInLine,
+                                GlobalPosition = position,
+                                Length = fullSSN.Length,
+                                LineText = lines[lineNum - 1]
+                            };
+
+                            currentResults.Add(result);
+                            dataGridView.Rows.Add(
+                                result.Substring,
+                                result.LineNumber,
+                                result.PositionInLine,
+                                result.Length
+                            );
+
+                            totalMatches++;
+                        }
+                    }
+                }
+                else 
+                {
+                    foreach (Match match in matches)
+                    {
+                        string date = match.Groups[1].Value;
+
+                        if (!string.IsNullOrEmpty(date))
+                        {
+                            int position = match.Index;
+                            int lineNum = GetLineNumber(text, position);
+                            int posInLine = GetPositionInLine(text, position);
+
+                            var result = new SearchResult
+                            {
+                                Substring = date,
+                                LineNumber = lineNum,
+                                PositionInLine = posInLine,
+                                GlobalPosition = position,
+                                Length = date.Length,
+                                LineText = lines[lineNum - 1]
+                            };
+
+                            currentResults.Add(result);
+                            dataGridView.Rows.Add(
+                                result.Substring,
+                                result.LineNumber,
+                                result.PositionInLine,
+                                result.Length
+                            );
+
+                            totalMatches++;
+                        }
                     }
                 }
             }
-
             label.Text = $"Найдено: {totalMatches}";
 
             if (totalMatches == 0)
@@ -997,24 +1079,55 @@ namespace editor
             }
         }
 
-        private int GetGlobalPosition(string text, int lineNumber, int positionInLine)
+        private int GetLineNumber(string text, int position)
         {
             string[] lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-            int globalPos = 0;
+            int currentPos = 0;
 
-            for (int i = 0; i < lineNumber; i++)
+            for (int i = 0; i < lines.Length; i++)
             {
-                globalPos += lines[i].Length;
-                if (i < lines.Length - 1)
+                int lineLength = lines[i].Length;
+                if (position >= currentPos && position <= currentPos + lineLength)
                 {
-                    if (text.Contains("\r\n"))
-                        globalPos += 2;
-                    else
-                        globalPos += 1;
+                    return i + 1;
                 }
+                currentPos += lineLength + (text.Contains("\r\n") ? 2 : 1);
             }
+            return 1;
+        }
 
-            return globalPos + positionInLine;
+        private int GetPositionInLine(string text, int position)
+        {
+            string[] lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            int currentPos = 0;
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                int lineLength = lines[i].Length;
+                if (position >= currentPos && position <= currentPos + lineLength)
+                {
+                    return position - currentPos + 1;
+                }
+                currentPos += lineLength + (text.Contains("\r\n") ? 2 : 1);
+            }
+            return 1;
+        }
+
+        private string GetLineAtPosition(string text, int position)
+        {
+            string[] lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            int currentPos = 0;
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                int lineLength = lines[i].Length;
+                if (position >= currentPos && position <= currentPos + lineLength)
+                {
+                    return lines[i];
+                }
+                currentPos += lineLength + (text.Contains("\r\n") ? 2 : 1);
+            }
+            return "";
         }
 
         private void DataGridView_SelectionChanged(object sender, EventArgs e)
@@ -1068,7 +1181,7 @@ namespace editor
 
                 for (int i = 0; i < line.Length; i++)
                 {
-                    if (automaton.ProcessChar(line[i], globalPos + i, out string match, out int matchStart, out int matchLength))
+                    if (automaton.ProcessChar(line[i], globalPos + i, char.IsDigit(line[i]), out string match, out int matchStart, out int matchLength))
                     {
                         totalMatches++;
 
@@ -1097,7 +1210,7 @@ namespace editor
                 }
             }
 
-            automaton.ProcessChar('\0', globalPos, out string finalMatch, out int finalStart, out int finalLength);
+            automaton.ProcessChar('\0', globalPos, char.IsDigit('\0'), out string finalMatch, out int finalStart, out int finalLength);
             if (finalMatch != null)
             {
                 totalMatches++;

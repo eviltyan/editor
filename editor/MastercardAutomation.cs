@@ -5,6 +5,14 @@ using System.Text.RegularExpressions;
 
 namespace editor
 {
+    public class SubstringResult
+    {
+        public string Value { get; set; }
+        public int Position { get; set; }
+        public int Line { get; set; }
+        public int Length => Value.Length;
+    }
+
     public class MasterCardAutomaton
     {
         private enum State
@@ -246,6 +254,134 @@ namespace editor
             }
 
             return false;
+        }
+        private SearchResult CreateResult(string text, int start, int end)
+        {
+            int count;
+            int lineNumber = 1;
+            for (int i = 0; i < start; i++)
+            {
+                if (text[i] == '\n')
+                    lineNumber++;
+            }
+
+            int positionInLine = start;
+            int j = 0;
+            for (int i = start - 1; i >= 0; i--)
+            {
+                if (text[i] == '\n')
+                    break;
+                positionInLine--;
+            }
+            j = start - positionInLine + 1;
+
+            return new SearchResult
+            {
+
+                Substring = text.Substring(start, end - start),
+                PositionInLine = j,
+                GlobalPosition = start,
+                LineNumber = lineNumber,
+                Length = 16,
+                LineText = ""
+            };
+        }
+
+        public List<SearchResult> FindNumberAutomaton(string text)
+        {
+            var results = new List<SearchResult>();
+
+            for (int i = 0; i <= text.Length - 16; i++)
+            {
+                int state = 0;
+
+                for (int k = 0; k < 16; k++)
+                {
+                    char c = text[i + k];
+
+                    if (!char.IsDigit(c))
+                    {
+                        state = -1;
+                        break;
+                    }
+
+                    int d = c - '0';
+
+                    switch (state)
+                    {
+                        case 0:
+                            if (d == 5) state = 1;
+                            else if (d == 2) state = 10;
+                            else state = -1;
+                            break;
+
+                        case 1:
+                            if (d >= 1 && d <= 5) state = 2;
+                            else state = -1;
+                            break;
+
+                        case 2: state = 3; break;
+                        case 3: state = 4; break;
+
+                        case 10:
+                            if (d == 2) state = 11;
+                            else if (d >= 3 && d <= 6) state = 20;
+                            else if (d == 7) state = 30;
+                            else state = -1;
+                            break;
+
+                        case 11:
+                            if (d == 2) state = 12;
+                            else if (d >= 3 && d <= 9) state = 13;
+                            else state = -1;
+                            break;
+
+                        case 12:
+                            if (d >= 1 && d <= 9) state = 4;
+                            else state = -1;
+                            break;
+
+                        case 13:
+                            state = 4;
+                            break;
+
+                        case 20:
+                            state = 21;
+                            break;
+
+                        case 21:
+                            state = 4;
+                            break;
+
+                        case 30:
+                            if (d == 0 || d == 1) state = 31;
+                            else if (d == 2) state = 32;
+                            else state = -1;
+                            break;
+
+                        case 31:
+                            state = 4;
+                            break;
+
+                        case 32:
+                            if (d == 0) state = 4;
+                            else state = -1;
+                            break;
+
+                        case 4:
+                            break;
+                    }
+
+                    if (state == -1) break;
+                }
+
+                if (state == 4)
+                {
+                    results.Add(CreateResult(text, i, i + 16));
+                }
+            }
+
+            return results;
         }
     }
 }

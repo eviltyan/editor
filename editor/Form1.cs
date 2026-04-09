@@ -937,13 +937,26 @@ namespace editor
             Label label = splitlabel.Panel1.Controls[0] as Label;
             Label labelSt = splitlabel.Panel2.Controls[0] as Label;
 
+            MasterCardAutomaton automaton = new MasterCardAutomaton();
+
             currentResults = new List<SearchResult>();
             int totalMatches = 0;
             string[] lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
 
             if (patternName == "Автомат")
             {
-                totalMatches = SearchMasterCardAutomaton(lines, text);
+                //totalMatches = SearchMasterCardAutomaton(lines, text);
+                currentResults = automaton.FindNumberAutomaton(text);
+                foreach(var result in currentResults)
+                {
+                    dataGridView.Rows.Add(
+                            result.Substring,
+                            result.LineNumber,
+                            result.PositionInLine,
+                            result.Length
+                        );
+                }
+                totalMatches = currentResults.Count;
             }
             else
             {
@@ -1147,6 +1160,7 @@ namespace editor
                 return;
 
             SearchResult result = currentResults[selectedIndex];
+
 
             RichTextBox richTextBoxEdit = GetEditRichTextBox(tabControl1.SelectedTab);
 

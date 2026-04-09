@@ -775,26 +775,42 @@ namespace editor
 
         private void вызовСправкиToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            InfoForm info = new InfoForm("Справка");
-            info.Show();
+            string url = "https://disk.yandex.ru/i/etYdKgavzt3-jg";
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            { }
         }
 
         private void infoButton_Click(object sender, EventArgs e)
         {
-            InfoForm info = new InfoForm("Справка");
-            info.Show();
+            string url = "https://disk.yandex.ru/i/etYdKgavzt3-jg";
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            { }
         }
 
         private void оПрограммеToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            InfoForm info = new InfoForm("О программе");
-            info.Show();
+            InfoForm.ShowInstance("О программе");
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
-            InfoForm info = new InfoForm("О программе");
-            info.Show();
+            InfoForm.ShowInstance("О программе");
         }
 
         private void Analyze()
@@ -918,8 +934,8 @@ namespace editor
 
         private void NavigateToPosition(int line, int position)
         {
-            RichTextBox richTextBox = GetEditRichTextBox(tabControl1.SelectedTab);
-            string[] lines = richTextBox.Lines;
+            RichTextBox richTextBoxEd = GetEditRichTextBox(tabControl1.SelectedTab);
+            string[] lines = richTextBoxEd.Lines;
             if (line <= lines.Length)
             {
                 int charIndex = 0;
@@ -929,11 +945,11 @@ namespace editor
                 }
                 charIndex += position + (1 * line - 2);
 
-                if (charIndex >= 0 && charIndex <= richTextBox.TextLength)
+                if (charIndex >= 0 && charIndex <= richTextBoxEd.TextLength)
                 {
-                    richTextBox.Focus();
-                    richTextBox.Select(charIndex, 1);
-                    richTextBox.ScrollToCaret();
+                    richTextBoxEd.Focus();
+                    richTextBoxEd.Select(charIndex, 1);
+                    richTextBoxEd.ScrollToCaret();
                 }
             }
         }

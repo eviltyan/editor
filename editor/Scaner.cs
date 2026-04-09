@@ -93,7 +93,7 @@ namespace editor
                         tokenStartLine = line;
                         tokenStartPos = pos;
 
-                        if (char.IsLetter(c))
+                        if (char.IsLetter(c) && (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')))
                         {
                             currentState = State.Id;
                             currentToken.Append(c);

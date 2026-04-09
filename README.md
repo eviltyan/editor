@@ -51,6 +51,8 @@
 #### Тестовые примеры  
 ![alt text](image-29.png)  
   
+![alt text](image-35.png)  
+  
   
 ### 2. Номера карт MasterCard:  
 #### Описание задачи  
@@ -100,6 +102,8 @@
   
 #### Тестовые примеры (скриншоты)  
 ![alt text](image-30.png)  
+  
+![alt text](image-37.png)  
   
 #### Граф автомата  
 ![alt text](l4.drawio.png)  
@@ -226,3 +230,5 @@
   
 #### Тестовые примеры (скриншоты)  
 ![alt text](image-31.png)  
+  
+![alt text](image-36.png)  

@@ -775,7 +775,7 @@ namespace editor
 
         private void вызовСправкиToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string url = "https://disk.yandex.ru/i/etYdKgavzt3-jg";
+            string url = @"..\..\..\..\Руководство-пользователя.-Компилятор.html";
             try
             {
                 Process.Start(new ProcessStartInfo
@@ -790,7 +790,7 @@ namespace editor
 
         private void infoButton_Click(object sender, EventArgs e)
         {
-            string url = "https://disk.yandex.ru/i/etYdKgavzt3-jg";
+            string url = @"..\..\..\..\Руководство-пользователя.-Компилятор.html";
             try
             {
                 Process.Start(new ProcessStartInfo
@@ -956,7 +956,7 @@ namespace editor
 
         private void постановкаЗадачиToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string url = "E:/projects/source/repos/editor/ПостановкаЗадачи.html";
+            string url = @"..\..\..\..\ПостановкаЗадачи.html";
             try
             {
                 Process.Start(new ProcessStartInfo
@@ -973,7 +973,7 @@ namespace editor
 
         private void грамматикаToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string url = "E:/projects/source/repos/editor/Грамматика.html";
+            string url = @"..\..\..\..\Грамматика.html";
             try
             {
                 Process.Start(new ProcessStartInfo
@@ -990,7 +990,7 @@ namespace editor
 
         private void классификацияГрамматикиToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string url = "E:/projects/source/repos/editor/КлассификацияГрамматики.html";
+            string url = @"..\..\..\..\КлассификацияГрамматики.html";
             try
             {
                 Process.Start(new ProcessStartInfo
@@ -1007,7 +1007,7 @@ namespace editor
 
         private void методАнализаToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string url = "E:/projects/source/repos/editor/МетодАнализа.html";
+            string url = @"..\..\..\..\МетодАнализа.html";
             try
             {
                 Process.Start(new ProcessStartInfo
@@ -1024,7 +1024,7 @@ namespace editor
 
         private void текстовыйПримерToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string url = "E:/projects/source/repos/editor/ТекстовыйПример.html";
+            string url = @"..\..\..\..\ТекстовыйПример.html";
             try
             {
                 Process.Start(new ProcessStartInfo
@@ -1041,7 +1041,7 @@ namespace editor
 
         private void списокЛитературыToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string url = "E:/projects/source/repos/editor/СписокЛитературы.html";
+            string url = @"..\..\..\..\СписокЛитературы.html";
             try
             {
                 Process.Start(new ProcessStartInfo
@@ -1058,7 +1058,7 @@ namespace editor
 
         private void исходныйКодПрограммыToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string url = "E:/projects/source/repos/editor/ИсходныйКод.html";
+            string url = @"..\..\..\..\ИсходныйКод.html";
             try
             {
                 Process.Start(new ProcessStartInfo

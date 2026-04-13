@@ -71,7 +71,7 @@ namespace editor
                             StartPos = tokenStartPos,
                             EndPos = pos - 1,
                             IsError = true,
-                            ErrorMessage = "Незакрытая кавычка в конце строки"
+                            ErrorMessage = "Незакрытая кавычка"
                         });
                         currentState = State.Start;
                         currentToken.Clear();
@@ -297,17 +297,17 @@ namespace editor
                         }
                         else
                         {
-                            tokens.Add(new Token
-                            {
-                                Code = -1,
-                                Type = "error",
-                                Value = "<",
-                                Line = tokenStartLine,
-                                StartPos = tokenStartPos,
-                                EndPos = tokenStartPos,
-                                IsError = true,
-                                ErrorMessage = "Ожидался символ '-' после '<'"
-                            });
+                            //tokens.Add(new Token
+                            //{
+                            //    Code = -1,
+                            //    Type = "error",
+                            //    Value = "<",
+                            //    Line = tokenStartLine,
+                            //    StartPos = tokenStartPos,
+                            //    EndPos = tokenStartPos,
+                            //    IsError = true,
+                            //    ErrorMessage = "Ожидался символ '-' после '<'"
+                            //});
 
                             currentState = State.Start;
                             currentToken.Clear();

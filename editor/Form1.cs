@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Reflection;
+using System.Security.Policy;
 using System.Text;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
@@ -6,7 +8,7 @@ namespace editor
 {
     public partial class Form1 : Form
     {
-        private int newDocumentCounter = 2; // По умолчанию при запуске программы открыт "Документ 1"
+        private int newDocumentCounter = 2;
         private Dictionary<TabPage, DocumentInfo> documentInfo = new Dictionary<TabPage, DocumentInfo>();
 
         private Font tabFont;
@@ -47,19 +49,6 @@ namespace editor
             dataGridView.AllowUserToDeleteRows = false;
             dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 
-            //dataGridView.Columns.Add("Code", "Условный код");
-            //dataGridView.Columns.Add("Type", "Тип лексемы");
-            //dataGridView.Columns["Type"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            //dataGridView.Columns.Add("Value", "Лексема");
-            //dataGridView.Columns.Add("Location", "Местоположение");
-            //dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            //dataGridView.Columns.Add("IsError", "Ошибка");
-            //dataGridView.Columns.Add("ErrorMessage", "Сообщение об ошибке");
-
-            //dataGridView.Columns["IsError"].Visible = false;
-            //dataGridView.Columns["ErrorMessage"].Visible = false;
-
-
             dataGridView.Columns.Add("Fragment", "Неверный фрагмент");
             dataGridView.Columns["Fragment"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dataGridView.Columns.Add("Location", "Местоположение");
@@ -89,20 +78,6 @@ namespace editor
             dataGridView.AllowUserToAddRows = false;
             dataGridView.AllowUserToDeleteRows = false;
             dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-
-            //dataGridView.Columns.Add("Code", "Условный код");
-            //dataGridView.Columns.Add("Type", "Тип лексемы");
-            //dataGridView.Columns["Type"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            //dataGridView.Columns.Add("Value", "Лексема");
-            //dataGridView.Columns.Add("Location", "Местоположение");
-            //dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            //dataGridView.Columns.Add("IsError", "Ошибка");
-            //dataGridView.Columns.Add("ErrorMessage", "Сообщение об ошибке");
-
-            //dataGridView.Columns["IsError"].Visible = false;
-            //dataGridView.Columns["ErrorMessage"].Visible = false;
-
-            //dataGridView.CellClick += ResultGridView_CellClick;
 
             dataGridView.Columns.Add("Fragment", "Неверный фрагмент");
             dataGridView.Columns["Fragment"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
@@ -381,6 +356,8 @@ namespace editor
                     SplitContainer splitReadOnly = currentPage.Controls[0] as SplitContainer;
                     DataGridView dataGridView = splitReadOnly.Panel2.Controls[0] as DataGridView;
                     dataGridView.Rows.Clear();
+                    dataGridView.CellClick += ErrorGridView_CellClick;
+                    tabControl1.SelectedTab = currentPage;
                 }
                 else
                 {
@@ -775,32 +752,14 @@ namespace editor
 
         private void вызовСправкиToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string url = @"..\..\..\..\Руководство-пользователя.-Компилятор.html";
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            { }
+            string url = "editor.Руководство-пользователя.-Компилятор.html";
+            openHtmlFile(url);
         }
 
         private void infoButton_Click(object sender, EventArgs e)
         {
-            string url = @"..\..\..\..\Руководство-пользователя.-Компилятор.html";
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            { }
+            string url = "editor.Руководство-пользователя.-Компилятор.html";
+            openHtmlFile(url);
         }
 
         private void оПрограммеToolStripMenuItem_Click(object sender, EventArgs e)
@@ -848,7 +807,11 @@ namespace editor
                 dynamic syntaxErrors = syntax.Parse(tokens);
                 allErrors.AddRange(syntaxErrors);
 
-                foreach (var error in allErrors)
+                List<SyntaxError> sortedErrors = allErrors.OrderBy(e => e.Line)
+                                   .ThenBy(e => e.Position)
+                                   .ToList();
+
+                foreach (var error in sortedErrors)
                 {
                     int rowIndex = dataGridView.Rows.Add(
                         error.InvalidFragment,
@@ -909,6 +872,7 @@ namespace editor
 
         private void ErrorGridView_CellClick(object sender, DataGridViewCellEventArgs e)
         {
+            DataGridView dataGridView = sender as DataGridView;
             if (e.RowIndex >= 0 && e.RowIndex < dataGridView.Rows.Count - 1)
             {
                 var row = dataGridView.Rows[e.RowIndex];
@@ -954,123 +918,105 @@ namespace editor
             }
         }
 
-        private void постановкаЗадачиToolStripMenuItem_Click(object sender, EventArgs e)
+        private void openHtmlFile(string url)
         {
-            string url = @"..\..\..\..\ПостановкаЗадачи.html";
             try
             {
-                Process.Start(new ProcessStartInfo
+                var assembly = Assembly.GetExecutingAssembly();
+                string tempFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".html");
+                using (Stream stream = assembly.GetManifestResourceStream(url))
+                using (StreamReader reader = new StreamReader(stream))
                 {
-                    FileName = url,
-                    UseShellExecute = true
-                });
+                    string htmlContent = reader.ReadToEnd();
+                    File.WriteAllText(tempFile, htmlContent);
+                }
+
+                Process.Start(new ProcessStartInfo(tempFile) { UseShellExecute = true });
             }
             catch (Exception ex)
             {
 
             }
+        }
+
+        private void постановкаЗадачиToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string url = "editor.ПостановкаЗадачи.html";
+            openHtmlFile(url);
         }
 
         private void грамматикаToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string url = @"..\..\..\..\Грамматика.html";
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-
-            }
+            string url = "editor.Грамматика.html";
+            openHtmlFile(url);
         }
 
         private void классификацияГрамматикиToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string url = @"..\..\..\..\КлассификацияГрамматики.html";
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-
-            }
+            string url = "editor.КлассификацияГрамматики.html";
+            openHtmlFile(url);
         }
 
         private void методАнализаToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string url = @"..\..\..\..\МетодАнализа.html";
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-
-            }
+            string url = "editor.МетодАнализа.html";
+            openHtmlFile(url);
         }
 
         private void текстовыйПримерToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string url = @"..\..\..\..\ТекстовыйПример.html";
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-
-            }
+            string url = "editor.ТекстовыйПример.html";
+            openHtmlFile(url);
         }
 
         private void списокЛитературыToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string url = @"..\..\..\..\СписокЛитературы.html";
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-
-            }
+            string url = "editor.СписокЛитературы.html";
+            openHtmlFile(url);
         }
 
         private void исходныйКодПрограммыToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string url = @"..\..\..\..\ИсходныйКод.html";
+            string url = "editor.ИсходныйКод.html";
+            openHtmlFile(url);
+        }
+
+        private void открытьПример1ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            createNewDocument();
+            RichTextBox richTextBox = GetEditRichTextBox(tabControl1.SelectedTab);
+
             try
             {
-                Process.Start(new ProcessStartInfo
+                string url = "editor.test.txt";
+                var assembly = Assembly.GetExecutingAssembly();
+                using (Stream stream = assembly.GetManifestResourceStream(url))
+                using (StreamReader reader = new StreamReader(stream))
                 {
-                    FileName = url,
-                    UseShellExecute = true
-                });
+                    richTextBox.Text = reader.ReadToEnd();
+                }
             }
             catch (Exception ex)
-            {
+            { }
+        }
 
+        private void открытьПример2ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            createNewDocument();
+            RichTextBox richTextBox = GetEditRichTextBox(tabControl1.SelectedTab);
+
+            try
+            {
+                string url = "editor.ntest.txt";
+                var assembly = Assembly.GetExecutingAssembly();
+                using (Stream stream = assembly.GetManifestResourceStream(url))
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    richTextBox.Text = reader.ReadToEnd();
+                }
             }
+            catch (Exception ex)
+            { }
         }
     }
 }

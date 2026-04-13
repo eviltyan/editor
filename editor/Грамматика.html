@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Грамматика</title>
+    <style>
+        body {
+            background: #ffffff;
+            margin: 0;
+            padding: 30px;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #000000;
+        }
+        .content {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        p, li {
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            font-size: 16px;
+        }
+        pre {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            background: #f4f4f4;
+            padding: 15px;
+            border-left: 4px solid #333;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .grammar-rule {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 15px;
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="content">
+
+<h1>Грамматика</h1>
+
+<p>Определим грамматику векторов языка R G[‹Def›] в нотации Хомского с продукциями P:</p>
+
+<pre>
+1.  &lt;Def&gt; → &lt;Letter&gt; &lt;NameVec&gt;
+2.  &lt;NameVec&gt; → &lt;Letter&gt; &lt;NameVec&gt; | “&lt;” &lt;Arrow&gt;
+3.  &lt;Arrow&gt; → “-“ &lt;RightPart&gt;
+4.  &lt;RightPart&gt; → “c” &lt;FuncCall&gt; | “NULL;”
+5.  &lt;FuncCall&gt; → “(“ &lt;Param&gt; | “();”
+6.  &lt;Param&gt; → “-“ &lt;UnsignedInt&gt; | &lt;Digit&gt; &lt;Int&gt; | “"” &lt;CharSeq&gt; | “TRUE,” | “FALSE,” | “NULL,” | “TRUE);” | “FALSE);” | “NULL);”
+7.  &lt;UnsignedInt&gt; → &lt;Digit&gt; &lt;Int&gt; | &lt;Digit&gt; &lt;EndParams&gt;
+8.  &lt;Int&gt; → &lt;Digit&gt; &lt;Int&gt; | “.” &lt;SecondPart&gt; | &lt;Digit&gt; &lt;EndParams&gt; | “,” &lt;Param&gt;
+9.  &lt;SecondPart&gt; → &lt;Digit&gt; &lt;SecondPart&gt; | &lt;Digit&gt; &lt;EndParams&gt; | “,” &lt;Param&gt;
+10. &lt;CharSeq&gt; → &lt;Letter&gt; &lt;CharSeq&gt; | &lt;Digit&gt; &lt;CharSeq&gt; | &lt;Symbol&gt; &lt;CharSeq&gt; | “",” &lt;Param&gt; | “"” &lt;EndParams&gt; 
+11. &lt;EndParams&gt; → “);”
+12. &lt;Letter&gt; → “a” | “b” | ... | “z” | “A” | ... | “Z”
+13. &lt;Digit&gt; → “0” | “1” | ... | “9”
+14. &lt;Symbol&gt; → “ “ | “!” | “@” | “#” | “№” | “`” | “$” | “%” | “^” | “&amp;” | “*” | “(“ | “)” | “-“ | “+” | “=” | “[“ | “]” | “{“ | “}” | “\” | “|” | “;” | “:” | “'” | “,” | “.” | “/” | “?” | “&gt;” | “&lt;” | “~” | “`” | “_”
+</pre>
+
+<p>Следуя введенному формальному определению грамматики, представим G[‹Def›] ее составляющими:</p>
+
+<ul>
+  <li><strong>Z</strong> = &lt;Def&gt;;</li>
+  <li><strong>V<sub>T</sub></strong> = {a, b, c, ..., z, A, B, C, ..., Z, пробел, !, @, #, $, %, ^, &amp;, *, (, ), -, +, =, [, ], {, }, \, ;, :, ', ,, ., /, ?, &gt;, &lt;, ~, `, _, 0, 1, 2, ..., 9};</li>
+  <li><strong>V<sub>N</sub></strong> = {&lt;Def&gt;, &lt;NameVec&gt;, &lt;Arrow&gt;, &lt;RightPart&gt;, &lt;FuncCall&gt;, &lt;Param&gt;, &lt;UnsignedInt&gt;, &lt;Int&gt;, &lt;SecondPart&gt;, &lt;CharSeq&gt;, &lt;EndParams&gt;, &lt;Digit&gt;, &lt;Letter&gt;, &lt;Symbol&gt;}.</li>
+</ul>
+
+</div>
+</body>
+</html>

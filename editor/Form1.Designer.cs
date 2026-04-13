@@ -55,6 +55,8 @@
             сохранитьToolStripMenuItem = new ToolStripMenuItem();
             сохранитьКакToolStripMenuItem = new ToolStripMenuItem();
             выходToolStripMenuItem = new ToolStripMenuItem();
+            открытьПример1ToolStripMenuItem = new ToolStripMenuItem();
+            открытьПример2ToolStripMenuItem = new ToolStripMenuItem();
             правкаToolStripMenuItem = new ToolStripMenuItem();
             отменитьToolStripMenuItem = new ToolStripMenuItem();
             вернутьToolStripMenuItem = new ToolStripMenuItem();
@@ -381,7 +383,7 @@
             // 
             // файлToolStripMenuItem
             // 
-            файлToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { создатьToolStripMenuItem, открытьToolStripMenuItem, сохранитьToolStripMenuItem, сохранитьКакToolStripMenuItem, выходToolStripMenuItem });
+            файлToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { создатьToolStripMenuItem, открытьToolStripMenuItem, сохранитьToolStripMenuItem, сохранитьКакToolStripMenuItem, выходToolStripMenuItem, открытьПример1ToolStripMenuItem, открытьПример2ToolStripMenuItem });
             файлToolStripMenuItem.Name = "файлToolStripMenuItem";
             файлToolStripMenuItem.Size = new Size(48, 20);
             файлToolStripMenuItem.Text = "Файл";
@@ -389,37 +391,51 @@
             // создатьToolStripMenuItem
             // 
             создатьToolStripMenuItem.Name = "создатьToolStripMenuItem";
-            создатьToolStripMenuItem.Size = new Size(154, 22);
+            создатьToolStripMenuItem.Size = new Size(180, 22);
             создатьToolStripMenuItem.Text = "Создать";
             создатьToolStripMenuItem.Click += создатьToolStripMenuItem_Click;
             // 
             // открытьToolStripMenuItem
             // 
             открытьToolStripMenuItem.Name = "открытьToolStripMenuItem";
-            открытьToolStripMenuItem.Size = new Size(154, 22);
+            открытьToolStripMenuItem.Size = new Size(180, 22);
             открытьToolStripMenuItem.Text = "Открыть";
             открытьToolStripMenuItem.Click += открытьToolStripMenuItem_Click;
             // 
             // сохранитьToolStripMenuItem
             // 
             сохранитьToolStripMenuItem.Name = "сохранитьToolStripMenuItem";
-            сохранитьToolStripMenuItem.Size = new Size(154, 22);
+            сохранитьToolStripMenuItem.Size = new Size(180, 22);
             сохранитьToolStripMenuItem.Text = "Сохранить";
             сохранитьToolStripMenuItem.Click += сохранитьToolStripMenuItem_Click;
             // 
             // сохранитьКакToolStripMenuItem
             // 
             сохранитьКакToolStripMenuItem.Name = "сохранитьКакToolStripMenuItem";
-            сохранитьКакToolStripMenuItem.Size = new Size(154, 22);
+            сохранитьКакToolStripMenuItem.Size = new Size(180, 22);
             сохранитьКакToolStripMenuItem.Text = "Сохранить как";
             сохранитьКакToolStripMenuItem.Click += сохранитьКакToolStripMenuItem_Click;
             // 
             // выходToolStripMenuItem
             // 
             выходToolStripMenuItem.Name = "выходToolStripMenuItem";
-            выходToolStripMenuItem.Size = new Size(154, 22);
+            выходToolStripMenuItem.Size = new Size(180, 22);
             выходToolStripMenuItem.Text = "Выход";
             выходToolStripMenuItem.Click += выходToolStripMenuItem_Click;
+            // 
+            // открытьПример1ToolStripMenuItem
+            // 
+            открытьПример1ToolStripMenuItem.Name = "открытьПример1ToolStripMenuItem";
+            открытьПример1ToolStripMenuItem.Size = new Size(180, 22);
+            открытьПример1ToolStripMenuItem.Text = "Открыть пример 1";
+            открытьПример1ToolStripMenuItem.Click += открытьПример1ToolStripMenuItem_Click;
+            // 
+            // открытьПример2ToolStripMenuItem
+            // 
+            открытьПример2ToolStripMenuItem.Name = "открытьПример2ToolStripMenuItem";
+            открытьПример2ToolStripMenuItem.Size = new Size(180, 22);
+            открытьПример2ToolStripMenuItem.Text = "Открыть пример 2";
+            открытьПример2ToolStripMenuItem.Click += открытьПример2ToolStripMenuItem_Click;
             // 
             // правкаToolStripMenuItem
             // 
@@ -635,5 +651,7 @@
         private SplitContainer splitContainer1;
         private RichTextBox richTextBoxEdit;
         private DataGridView dataGridView;
+        private ToolStripMenuItem открытьПример1ToolStripMenuItem;
+        private ToolStripMenuItem открытьПример2ToolStripMenuItem;
     }
 }

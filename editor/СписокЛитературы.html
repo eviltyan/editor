@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Список литературы</title>
+    <style>
+        body {
+            background: #ffffff;
+            margin: 0;
+            padding: 30px;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #000000;
+        }
+        .content {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        p {
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            font-size: 16px;
+            margin: 15px 0;
+        }
+        .literature-list {
+            margin: 15px 0;
+            padding-left: 30px;
+            list-style-type: none;
+        }
+        .literature-list li {
+            margin: 12px 0;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        .literature-list li::before {
+            content: "•";
+            color: #333;
+            font-weight: bold;
+            display: inline-block;
+            width: 20px;
+            margin-left: -20px;
+        }
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        strong {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<div class="content">
+    <h1>Список литературы</h1>
+    
+    <ul class="literature-list">
+        <li>1. Шорников Ю.В. Теория и практика языковых процессоров : учеб. пособие / Ю.В. Шорников. – Новосибирск: Изд-во НГТУ, 2004.</li>
+        <li>2. Gries D. Designing Compilers for Digital Computers. New York, Jhon Wiley, 1971. 493 p.</li>
+        <li>3. Теория формальных языков и компиляторов [Электронный ресурс] / Электрон. дан. URL: <a href="https://dispace.nstu.ru/course/2355?from=courses" target="_blank">https://dispace.nstu.ru/course/2355?from=courses</a>, свободный. Яз.рус. (дата обращения 23.03.2026).</li>
+        <li>4. Кабаков Р. И. R в действии : анализ и визуализация данных на языке R : [перевод с английского] / Р. Кабаков. – 2-е изд. – Москва : ДМК Пресс, 2021. – 654 с.</li>
+    </ul>
+</div>
+</body>
+</html>

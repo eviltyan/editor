@@ -9,6 +9,32 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="ntest.txt" />
+    <None Remove="test.txt" />
+    <None Remove="Грамматика.html" />
+    <None Remove="ИсходныйКод.html" />
+    <None Remove="КлассификацияГрамматики.html" />
+    <None Remove="МетодАнализа.html" />
+    <None Remove="ПостановкаЗадачи.html" />
+    <None Remove="Руководство-пользователя.-Компилятор.html" />
+    <None Remove="СписокЛитературы.html" />
+    <None Remove="ТекстовыйПример.html" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="ntest.txt" />
+    <EmbeddedResource Include="test.txt" />
+    <EmbeddedResource Include="Грамматика.html" />
+    <EmbeddedResource Include="ИсходныйКод.html" />
+    <EmbeddedResource Include="КлассификацияГрамматики.html" />
+    <EmbeddedResource Include="МетодАнализа.html" />
+    <EmbeddedResource Include="ПостановкаЗадачи.html" />
+    <EmbeddedResource Include="Руководство-пользователя.-Компилятор.html" />
+    <EmbeddedResource Include="СписокЛитературы.html" />
+    <EmbeddedResource Include="ТекстовыйПример.html" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

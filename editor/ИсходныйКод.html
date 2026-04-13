@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Исходный код</title>
+    <style>
+        body {
+            background: #FFFFFF;
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #000000;
+        }
+        pre {
+            margin: 0;
+            padding: 10px;
+            background: #FFFFFF;
+            color: #000000;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-x: auto;
+            border-radius: 5px;
+        }
+        code {
+            font-family: inherit;
+        }
+    </style>
+</head>
+<body>
+<h1>Исходный код</h1>
+<pre><code>
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace editor
+{
+    public class SyntaxError
+    {
+        public string InvalidFragment { get; set; }
+        public int Line { get; set; }
+        public int Position { get; set; }
+        public string Description { get; set; }
+        public string Location => $"строка {Line}, позиция {Position}";
+    }
+
+    public class SyntaxAutomaton
+    {
+        private enum State
+        {
+            Start,
+            InNameVec,
+            ExpectArrow,
+            ExpectMinus,
+            ExpectCOrNull,
+            InFuncCall,
+            InParams,
+            AfterParam,
+            InNumber,
+            InNegativeNumber,
+            AfterDecimalPoint,
+            InString,
+            ExpectSemicolon,
+            End,
+            Error
+        }
+
+        private enum StackSymbol
+        {
+            Left,
+            Right
+        }
+
+        private bool CommaParam = false;
+
+        private State currentState;
+        private Stack&lt;StackSymbol&gt; stack;
+        private List&lt;Token&gt; tokens;
+        private int position;
+        private List&lt;SyntaxError&gt; errors;
+        private int currentLine;
+        private int currentPos;
+
+        public SyntaxAutomaton()
+        {
+            stack = new Stack&lt;StackSymbol&gt;();
+            errors = new List&lt;SyntaxError&gt;();
+        }
+
+        public List&lt;SyntaxError&gt; Parse(List&lt;Token&gt; tokens)
+        {
+            this.tokens = tokens;
+            this.position = 0;
+            this.currentState = State.Start;
+            this.errors = new List&lt;SyntaxError&gt;();
+            this.stack.Clear();
+
+            while (position &lt; tokens.Count &amp;&amp; currentState != State.Error)
+            {
+                Token token = tokens[position];
+                currentLine = token.Line;
+                currentPos = token.StartPos;
+                ProcessToken(token);
+            }
+
+            if (currentState == State.End &amp;&amp; position &gt;= tokens.Count)
+            {
+                // Успех
+            }
+            else if (tokens.Count == 0)
+                return errors;
+            else if (currentState != State.Error &amp;&amp; currentState != State.End)
+            {
+                AddError("&lt;конец файла&gt;", currentLine, currentPos, "Неожиданный конец строки. Возможно, не закрыта скобка или отсутствует ';'");
+            }
+
+            return errors;
+        }
+
+        private void ProcessToken(Token token)
+        {
+            
+            switch (currentState)
+            {
+                case State.Start:
+                    // &lt;Def&gt; → &lt;Letter&gt; &lt;NameVec&gt;
+                    if (IsLetter(token))
+                    {
+                        currentState = State.InNameVec;
+                        position++;
+                    }
+                    else if (token.Value == "(пробел)")
+                    {
+                        position++;
+                    }
+                    else
+                    {
+                        AddError(token.Value, token.Line, token.StartPos,
+                            $"Ожидается идентификатор (буква), найдено '{token.Value}'");
+                        string[] syncTokens = { "&lt;-", "(", ";", ")", "," };
+                        RecoverToSyncPoint(syncTokens);
+                    }
+                    break;
+
+                case State.InNameVec:
+                    // &lt;NameVec&gt; → &lt;Letter&gt; &lt;NameVec&gt; | "&lt;" &lt;Arrow&gt;
+                    if (token.Value == "&lt;-")
+                    {
+                        currentState = State.ExpectCOrNull;
+                        position++;
+                    }
+                    else if (token.Value == "(пробел)")
+                    {
+                        position++;
+                    }
+                    else
+                    {
+                        AddError(token.Value, token.Line, token.StartPos,
+                            $"Ожидается '&lt;-', найдено '{token.Value}'");
+                        string[] syncTokens = { "(", ";", ")", "," };
+                        RecoverToSyncPoint(syncTokens);
+                    }
+                    break;
+
+                case State.ExpectCOrNull:
+                    // &lt;RightPart&gt; → "c" &lt;FuncCall&gt; | "NULL;"
+                    if (token.Value == "c" &amp;&amp; token.Type == "id")
+                    {
+                        currentState = State.InFuncCall;
+                        position++;
+                    }
+                    else if (token.Value == "(пробел)")
+                    {
+                        position++;
+                    }
+                    else if (token.Value == "NULL" &amp;&amp; token.Code == 14)
+                    {
+                        currentState = State.ExpectSemicolon;
+                        position++;
+                    }
+                    else
+                    {
+                        AddError(token.Value, token.Line, token.StartPos,
+                            $"Ожидается 'c' или 'NULL', найдено '{token.Value}'");
+                        string[] syncTokens = { "(", ";", ")", "," };
+                        RecoverToSyncPoint(syncTokens);
+                    }
+                    break;
+
+                case State.InFuncCall:
+                    // &lt;FuncCall&gt; → "(" &lt;Param&gt; | “();”
+                    if (token.Value == "(")
+                    {
+                        stack.Push(StackSymbol.Left);
+                        currentState = State.InParams;
+                        position++;
+                    }
+                    else
+                    {
+                        AddError(token.Value, token.Line, token.StartPos,
+                            $"Ожидается '(', найдено '{token.Value}'");
+                        string[] syncTokens = { ";", ")", "," };
+                        RecoverToSyncPoint(syncTokens);
+                    }
+                    break;
+
+                case State.InParams:
+                    // &lt;Param&gt; → “-“ &lt;UnsignedInt&gt;, &lt;Digit&gt; &lt;Int&gt;, “"” &lt;CharSeq&gt; | “TRUE,” | “FALSE,” | “NULL,” | “TRUE);” | “FALSE);” | “NULL);”
+                    if (token.Value == ")")
+                    {
+                        if (CommaParam)
+                        {
+                            CommaParam = false;
+                            AddError(token.Value, token.Line, token.StartPos,
+                                "Неожиданная ')'. После запятой ожидается параметр (число, строка, TRUE, FALSE, NULL)");
+                            string[] syncTokens = { ";", ")", "," };
+                            RecoverToSyncPoint(syncTokens);
+                        }
+                        else if (stack.Count &gt; 0 &amp;&amp; stack.Peek() == StackSymbol.Left)
+                        {
+                            stack.Pop();
+                            currentState = State.ExpectSemicolon;
+                            position++;
+                        }
+                        else
+                        {
+                            AddError(token.Value, token.Line, token.StartPos,
+                                "Неожиданная ')'. После запятой ожидается параметр (число, строка, TRUE, FALSE, NULL)");
+                            string[] syncTokens = { ";", ")", "," };
+                            RecoverToSyncPoint(syncTokens);
+                        }
+                    }
+                    else if (token.Value == "(пробел)")
+                    {
+                        position++;
+                    }
+                    else if (IsNumberParamStart(token))
+                    {
+                        if (token.Value == "-")
+                        {
+                            currentState = State.InNegativeNumber;
+                            position++;
+                        }
+                        else
+                        {
+                            currentState = State.InNumber;
+                        }
+                    }
+                    else if (IsStringParamStart(token))
+                    {
+                        currentState = State.AfterParam;
+                        position++;
+                    }
+                    else if (token.Value == "TRUE" || token.Value == "NULL" || token.Value == "FALSE")
+                    {
+                        currentState = State.AfterParam;
+                        position++;
+                    }
+                    else
+                    {
+                        AddError(token.Value, token.Line, token.StartPos,
+                            $"Ожидается параметр (число, строка, TRUE, FALSE, NULL) или закрытие скобки, найдено '{token.Value}'");
+                        RecoverToNextParam();
+                    }
+                    break;
+
+                case State.InNumber:
+                    /*
+                      &lt;Int&gt; → &lt;Digit&gt; &lt;Int&gt; | “.” &lt;SecondPart&gt; | &lt;Digit&gt; &lt;EndParams&gt; | “,” &lt;Param&gt;
+                      &lt;SecondPart&gt; → &lt;Digit&gt; &lt;SecondPart&gt; | &lt;Digit&gt; &lt;EndParams&gt; | “,” &lt;Param&gt;
+                     */
+                    if (IsNumber(token))
+                    {
+                        if (token.Value.Contains("."))
+                        {
+                            string[] parts = token.Value.Split('.');
+                            if (string.IsNullOrEmpty(parts[0]) || parts[0].Length == 0)
+                            {
+                                AddError(token.Value, token.Line, token.StartPos,
+                                    "Ожидается цифра перед десятичной точкой");
+                            }
+                            if (string.IsNullOrEmpty(parts[1]) || parts[1].Length == 0)
+                            {
+                                AddError(token.Value, token.Line, token.StartPos,
+                                    "Ожидается цифра после десятичной точки");
+                            }
+                        }
+
+                        currentState = State.AfterParam;
+                        position++;
+                    }
+                    else if (token.Value == ",")
+                    {
+                        currentState = State.InParams;
+                        CommaParam = true;
+                        position++;
+                    }
+                    else if (token.Value == ")")
+                    {
+                        currentState = State.ExpectSemicolon;
+                        stack.Push(StackSymbol.Right);
+                        position++;
+                    }
+                    else
+                    {
+                        AddError(token.Value, token.Line, token.StartPos,
+                            $"Ожидается число, найдено '{token.Value}'");
+                        RecoverToNextParam();
+                    }
+                    break;
+
+                case State.InNegativeNumber:
+                    // &lt;UnsignedInt&gt; → &lt;Digit&gt; &lt;Int&gt; | &lt;Digit&gt; &lt;EndParams&gt;
+                    if (IsNumber(token))
+                    {
+                        currentState = State.AfterParam;
+                        position++;
+                    }
+                    else
+                    {
+                        AddError(token.Value, token.Line, token.StartPos,
+                            $"Ожидается число после '-', найдено '{token.Value}'");
+                        RecoverToNextParam();
+                    }
+                    break;
+
+                case State.AfterParam:
+                    // “,” &lt;Param&gt; | &lt;_&gt; &lt;EndParams&gt;
+                    if (token.Value == ",")
+                    {
+                        currentState = State.InParams;
+                        CommaParam = true;
+                        position++;
+                    }
+                    else if (token.Value == "(пробел)")
+                    {
+                        position++;
+                    }
+                    else if (token.Value == ")")
+                    {
+                        if (stack.Count &gt; 0 &amp;&amp; stack.Peek() == StackSymbol.Left)
+                        {
+                            stack.Pop();
+                            currentState = State.ExpectSemicolon;
+                            position++;
+                        }
+                        else
+                        {
+                            AddError(token.Value, token.Line, token.StartPos,
+                                "Неожиданная ')'");
+                            string[] syncTokens = { ";", ")", "," };
+                            RecoverToSyncPoint(syncTokens);
+                        }
+                    }
+                    else
+                    {
+                        AddError(token.Value, token.Line, token.StartPos,
+                            $"Ожидается ',' или ')', найдено '{token.Value}'");
+                        RecoverToNextParam();
+                    }
+                    break;
+
+                case State.ExpectSemicolon:
+                    if (token.Value == ";")
+                    {
+                        currentState = State.End;
+                        position++;
+                    }
+                    else
+                    {
+                        AddError(token.Value, token.Line, token.StartPos,
+                            $"Ожидается ';', найдено '{token.Value}'");
+                        string[] syncTokens = { ";" };
+                        RecoverToSyncPoint(syncTokens);
+                    }
+                    break;
+
+                case State.End:
+                    currentState = State.Start;
+                    break;
+            }
+        }
+
+        private void RecoverToSyncPoint(string[] syncTokens)
+        {
+            //string[] syncTokens = { "&lt;-", "(", ";", ")", ","};
+
+            while (position &lt; tokens.Count &amp;&amp; !syncTokens.Contains(tokens[position].Value))
+            {
+                position++;
+            }
+
+            if (position &lt; tokens.Count)
+            {
+                Token syncToken = tokens[position];
+
+                switch (syncToken.Value)
+                {
+                    case ";":
+                        currentState = State.End;
+                        position++;
+                        break;
+
+                    case "&lt;-":
+                        currentState = State.ExpectCOrNull;
+                        position++;
+                        break;
+
+                    case "(":
+                        while (stack.Count &gt; 0 &amp;&amp; stack.Peek() != StackSymbol.Right)
+                        {
+                            stack.Pop();
+                        }
+                        if (stack.Count &gt; 0)
+                        {
+                            stack.Pop();
+                        }
+                        currentState = State.InParams;
+                        stack.Push(StackSymbol.Left);
+                        position++;
+                        break;
+
+                    case ")":
+                        while (stack.Count &gt; 0 &amp;&amp; stack.Peek() != StackSymbol.Left)
+                        {
+                            stack.Pop();
+                        }
+                        if (stack.Count &gt; 0)
+                        {
+                            stack.Pop();
+                        }
+                        currentState = State.ExpectSemicolon;
+                        stack.Push(StackSymbol.Right);
+                        position++;
+                        break;
+
+                    case ",":
+                        currentState = State.InParams;
+                        position++;
+                        break;
+                }
+            }
+            else
+            {
+                currentState = State.Error;
+            }
+        }
+
+        private void RecoverToNextParam()
+        {
+            string[] syncTokens = { ",", ")"};
+
+            while (position &lt; tokens.Count &amp;&amp; !syncTokens.Contains(tokens[position].Value))
+            {
+                position++;
+            }
+
+            if (position &lt; tokens.Count)
+            {
+                if (tokens[position].Value == ",")
+                {
+                    currentState = State.InParams;
+                    position++;
+                }
+                else if (tokens[position].Value == ")")
+                {
+                    if (stack.Count &gt; 0 &amp;&amp; stack.Peek() == StackSymbol.Left)
+                    {
+                        stack.Pop();
+                    }
+                    currentState = State.ExpectSemicolon;
+                    stack.Push(StackSymbol.Right);
+                    position++;
+                }
+            }
+            else
+            {
+                currentState = State.Error;
+            }
+        }
+
+        private bool IsLetter(Token token)
+        {
+            if (token.Type != "id") return false;
+            if (token.Value.Length == 0) return false;
+            char firstChar = token.Value[0];
+            return char.IsLetter(firstChar);
+        }
+
+        private bool IsNumberParamStart(Token token)
+        {
+            return IsNumber(token) || token.Value == "-";
+        }
+
+        private bool IsNumber(Token token)
+        {
+            return token.Type == "integer" || token.Type == "numeric";
+        }
+
+        private bool IsStringParamStart(Token token)
+        {
+            return token.Type == "character";
+        }
+
+        private void AddError(string fragment, int line, int position, string description)
+        {
+            errors.Add(new SyntaxError
+            {
+                InvalidFragment = string.IsNullOrEmpty(fragment) ? "&lt;конец файла&gt;" : fragment,
+                Line = line,
+                Position = position,
+                Description = description
+            });
+        }
+    }
+}
+</code></pre>
+</body>
+</html>

@@ -17,6 +17,9 @@ namespace editor
         private LexicalAnalyzer analyzer;
         private SyntaxAutomaton syntax;
 
+        private List<VectorDeclNode> lastAstNodes = new List<VectorDeclNode>();
+        private bool isJson = false;
+
         public Form1()
         {
             InitializeComponent();
@@ -30,20 +33,13 @@ namespace editor
 
             tabFont = this.Font;
 
-            DocumentInfo info = new DocumentInfo
+            var controls = new PageControls
             {
-                FilePath = null,
-                IsModified = false,
-                IsSaved = false,
-                OriginalTabName = "Документ 1"
+                EditBox = richTextBoxEdit,
+                AstBox = astTextBox,
+                ErrorGrid = dataGridView
             };
-
-            RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
-
-            info.History.AddState(new TextState(editBox.Text, editBox.SelectionStart, editBox.SelectionLength));
-            documentInfo[tabControl1.SelectedTab] = info;
-
-            this.StartPosition = FormStartPosition.CenterScreen;
+            tabPage1.Tag = controls;
 
             dataGridView.AllowUserToAddRows = false;
             dataGridView.AllowUserToDeleteRows = false;
@@ -56,6 +52,21 @@ namespace editor
             dataGridView.Columns.Add("Description", "Описание ошибки");
             dataGridView.Columns["Description"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dataGridView.CellClick += ErrorGridView_CellClick;
+
+            DocumentInfo info = new DocumentInfo
+            {
+                FilePath = null,
+                IsModified = false,
+                IsSaved = false,
+                OriginalTabName = "Документ 1"
+            };
+
+            richTextBoxEdit.TextChanged += RichTextBox_TextChanged;
+            info.History.AddState(new TextState(richTextBoxEdit.Text, richTextBoxEdit.SelectionStart, richTextBoxEdit.SelectionLength));
+            documentInfo[tabPage1] = info;
+
+            this.StartPosition = FormStartPosition.CenterScreen;
+            UpdateUndoRedoButtons();
         }
 
         private void createNewDocument()
@@ -64,14 +75,64 @@ namespace editor
             string tabName = $"Документ {newDocumentCounter++}";
             newPage.Text = tabName;
 
-            SplitContainer splitContainer = new SplitContainer();
-            splitContainer.Dock = DockStyle.Fill;
-            splitContainer.Orientation = Orientation.Horizontal;
-            splitContainer.SplitterDistance = splitContainer.Height / 2;
+            SplitContainer mainSplit = new SplitContainer();
+            mainSplit.Dock = DockStyle.Fill;
+            mainSplit.Orientation = Orientation.Horizontal;
+            mainSplit.SplitterDistance = mainSplit.Height * 70 / 100;
 
-            RichTextBox richTextBoxEdit = new RichTextBox();
-            richTextBoxEdit.Dock = DockStyle.Fill;
-            richTextBoxEdit.AcceptsTab = true;
+            SplitContainer editorSplit = new SplitContainer();
+            editorSplit.Dock = DockStyle.Fill;
+            editorSplit.Orientation = Orientation.Vertical;
+            editorSplit.SplitterDistance = editorSplit.Width / 2;
+
+            RichTextBox editBox = new RichTextBox();
+            editBox.Dock = DockStyle.Fill;
+            editBox.AcceptsTab = true;
+            editBox.Font = new Font("Consolas", 11);
+
+            TextBox astBox = new TextBox();
+            astBox.Dock = DockStyle.Fill;
+            astBox.Multiline = true;
+            astBox.ScrollBars = ScrollBars.Both;
+            astBox.Font = new Font("Consolas", 10);
+            astBox.WordWrap = false;
+            astBox.ReadOnly = true;
+            astBox.BackColor = Color.FromArgb(250, 250, 250);
+
+            Panel leftPanel = new Panel();
+            leftPanel.Dock = DockStyle.Fill;
+            Label leftLabel = new Label();
+            leftLabel.Text = "Редактор кода";
+            leftLabel.Dock = DockStyle.Top;
+            leftLabel.BackColor = Color.FromArgb(240, 240, 240);
+            leftLabel.Padding = new Padding(5);
+            leftLabel.Font = new Font("Segoe UI", 9, FontStyle.Bold);
+            leftPanel.Controls.Add(editBox);
+            leftPanel.Controls.Add(leftLabel);
+
+            Panel rightPanel = new Panel();
+            rightPanel.Dock = DockStyle.Fill;
+            Label rightLabel = new Label();
+            rightLabel.Text = "AST (Абстрактное синтаксическое дерево)";
+            rightLabel.Dock = DockStyle.Top;
+            rightLabel.BackColor = Color.FromArgb(240, 240, 240);
+            rightLabel.Padding = new Padding(5);
+            rightLabel.Font = new Font("Segoe UI", 9, FontStyle.Bold);
+            rightPanel.Controls.Add(astBox);
+            rightPanel.Controls.Add(rightLabel);
+
+            editorSplit.Panel1.Controls.Add(leftPanel);
+            editorSplit.Panel2.Controls.Add(rightPanel);
+
+            Panel errorPanel = new Panel();
+            errorPanel.Dock = DockStyle.Fill;
+
+            Label errorLabel = new Label();
+            errorLabel.Text = "Ошибки";
+            errorLabel.Dock = DockStyle.Top;
+            errorLabel.BackColor = Color.FromArgb(240, 240, 240);
+            errorLabel.Padding = new Padding(5);
+            errorLabel.Font = new Font("Segoe UI", 9, FontStyle.Bold);
 
             DataGridView dataGridView = new DataGridView();
             dataGridView.Dock = DockStyle.Fill;
@@ -87,9 +148,19 @@ namespace editor
             dataGridView.Columns["Description"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dataGridView.CellClick += ErrorGridView_CellClick;
 
-            splitContainer.Panel1.Controls.Add(richTextBoxEdit);
-            splitContainer.Panel2.Controls.Add(dataGridView);
-            newPage.Controls.Add(splitContainer);
+            errorPanel.Controls.Add(dataGridView);
+            errorPanel.Controls.Add(errorLabel);
+
+            mainSplit.Panel1.Controls.Add(editorSplit);
+            mainSplit.Panel2.Controls.Add(errorPanel);
+            newPage.Controls.Add(mainSplit);
+
+            newPage.Tag = new PageControls
+            {
+                EditBox = editBox,
+                AstBox = astBox,
+                ErrorGrid = dataGridView
+            };
 
             DocumentInfo info = new DocumentInfo
             {
@@ -99,14 +170,11 @@ namespace editor
                 OriginalTabName = tabName
             };
 
-            RichTextBox editBox = GetEditRichTextBox(newPage);
             editBox.TextChanged += RichTextBox_TextChanged;
-
             info.History.AddState(new TextState(editBox.Text, editBox.SelectionStart, editBox.SelectionLength));
             documentInfo[newPage] = info;
 
             tabControl1.TabPages.Add(newPage);
-
             tabControl1.SelectedTab = newPage;
 
             UpdateUndoRedoButtons();
@@ -114,8 +182,8 @@ namespace editor
 
         private RichTextBox GetEditRichTextBox(TabPage page)
         {
-            SplitContainer split = page.Controls[0] as SplitContainer;
-            return split.Panel1.Controls[0] as RichTextBox;
+            var controls = page.Tag as PageControls;
+            return controls?.EditBox;
         }
 
         private void AddTextState(RichTextBox editBox, TabPage page)
@@ -322,8 +390,9 @@ namespace editor
                     TabPage currentPage = tabControl1.SelectedTab;
                     string filePath = openFileDialog.FileName;
 
-                    SplitContainer split = currentPage.Controls[0] as SplitContainer;
-                    RichTextBox editBox = split.Panel1.Controls[0] as RichTextBox;
+                    RichTextBox editBox = GetEditRichTextBox(currentPage);
+                    DataGridView dataGridView = GetErrorGridView(currentPage);
+                    TextBox astBox = GetAstTextBox(currentPage);
 
                     try
                     {
@@ -344,7 +413,7 @@ namespace editor
                         currentPage.Text = Path.GetFileName(filePath);
 
                         info.History.AddState(new TextState(editBox.Text, editBox.SelectionStart, editBox.SelectionLength));
-                        documentInfo[tabControl1.SelectedTab] = info;
+                        documentInfo[currentPage] = info;
                     }
                     catch (Exception ex)
                     {
@@ -353,9 +422,8 @@ namespace editor
                         documentInfo.Remove(currentPage);
                     }
 
-                    SplitContainer splitReadOnly = currentPage.Controls[0] as SplitContainer;
-                    DataGridView dataGridView = splitReadOnly.Panel2.Controls[0] as DataGridView;
                     dataGridView.Rows.Clear();
+                    astBox.Clear();
                     dataGridView.CellClick += ErrorGridView_CellClick;
                     tabControl1.SelectedTab = currentPage;
                 }
@@ -365,6 +433,18 @@ namespace editor
                     documentInfo.Remove(tabControl1.SelectedTab);
                 }
             }
+        }
+
+        private TextBox GetAstTextBox(TabPage page)
+        {
+            var controls = page.Tag as PageControls;
+            return controls?.AstBox;
+        }
+
+        private DataGridView GetErrorGridView(TabPage page)
+        {
+            var controls = page.Tag as PageControls;
+            return controls?.ErrorGrid;
         }
 
         private void openButton_Click(object sender, EventArgs e)
@@ -774,20 +854,24 @@ namespace editor
 
         private void Analyze()
         {
-            RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
+            if (tabControl1.TabPages.Count == 0) return;
+
             TabPage currentPage = tabControl1.SelectedTab;
-            SplitContainer splitReadOnly = currentPage.Controls[0] as SplitContainer;
-            DataGridView dataGridView = splitReadOnly.Panel2.Controls[0] as DataGridView;
+            RichTextBox editBox = GetEditRichTextBox(currentPage);
+            DataGridView dataGridView = GetErrorGridView(currentPage);
+            TextBox astTextBox = GetAstTextBox(currentPage);
+
+            if (editBox == null || dataGridView == null || astTextBox == null) return;
+
             try
             {
                 Application.DoEvents();
 
                 string input = editBox.Text;
-
                 dataGridView.Rows.Clear();
+                astTextBox.Clear();
 
                 List<SyntaxError> allErrors = new List<SyntaxError>();
-
                 var tokens = analyzer.Analyze(input);
 
                 foreach (var token in tokens)
@@ -807,9 +891,20 @@ namespace editor
                 dynamic syntaxErrors = syntax.Parse(tokens);
                 allErrors.AddRange(syntaxErrors);
 
+                List<VectorDeclNode> astNodes = new List<VectorDeclNode>();
+                List<SemanticError> semanticErrors = new List<SemanticError>();
+
+                if (allErrors.Count == 0)
+                {
+                    SemanticAnalyzer semantic = new SemanticAnalyzer();
+                    var result = semantic.Analyze(tokens);
+                    astNodes = result.astNodes;
+                    semanticErrors = result.errors;
+                }
+
                 List<SyntaxError> sortedErrors = allErrors.OrderBy(e => e.Line)
-                                   .ThenBy(e => e.Position)
-                                   .ToList();
+                                           .ThenBy(e => e.Position)
+                                           .ToList();
 
                 foreach (var error in sortedErrors)
                 {
@@ -818,14 +913,20 @@ namespace editor
                         error.Location,
                         error.Description
                     );
-
-                    dataGridView.Columns["Fragment"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-                    dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-                    dataGridView.Columns["Description"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
                     dataGridView.Rows[rowIndex].DefaultCellStyle.BackColor = Color.FromArgb(255, 240, 240);
                 }
 
-                int totalErrors = allErrors.Count;
+                foreach (var error in semanticErrors)
+                {
+                    int rowIndex = dataGridView.Rows.Add(
+                        error.Fragment,
+                        error.Location,
+                        error.Message
+                    );
+                    dataGridView.Rows[rowIndex].DefaultCellStyle.BackColor = Color.FromArgb(255, 220, 220);
+                }
+
+                int totalErrors = allErrors.Count + semanticErrors.Count;
 
                 DataGridViewRow countRow = new DataGridViewRow();
                 countRow.DefaultCellStyle.BackColor = totalErrors == 0 ? Color.FromArgb(220, 255, 220) : Color.FromArgb(255, 220, 220);
@@ -833,34 +934,48 @@ namespace editor
                 countRow.DefaultCellStyle.ForeColor = totalErrors == 0 ? Color.Green : Color.Red;
 
                 DataGridViewCell countCell = new DataGridViewTextBoxCell();
-                if (totalErrors == 0)
-                {
-                    countCell.Value = $"Общее количество ошибок: {totalErrors} - Синтаксических ошибок не обнаружено!";
-                }
-                else
-                {
-                    countCell.Value = $"Общее количество ошибок: {totalErrors}";
-                }
+                countCell.Value = totalErrors == 0
+                    ? $"Общее количество ошибок: 0 - Ошибок не обнаружено!"
+                    : $"Общее количество ошибок: {totalErrors}";
                 countRow.Cells.Add(countCell);
-
-                DataGridViewCell emptyCell3 = new DataGridViewTextBoxCell();
-                emptyCell3.Value = "";
-                countRow.Cells.Add(emptyCell3);
-
-                DataGridViewCell emptyCell4 = new DataGridViewTextBoxCell();
-                emptyCell4.Value = "";
-                countRow.Cells.Add(emptyCell4);
-
+                countRow.Cells.Add(new DataGridViewTextBoxCell());
+                countRow.Cells.Add(new DataGridViewTextBoxCell());
                 dataGridView.Rows.Add(countRow);
 
+                lastAstNodes = astNodes;
+
+                if (astNodes.Count > 0)
+                {
+                    StringBuilder allAst = new StringBuilder();
+
+                    for (int i = 0; i < astNodes.Count; i++)
+                    {
+                        if (i > 0)
+                        {
+                            allAst.AppendLine();
+                            allAst.AppendLine();
+                        }
+
+                        allAst.Append(AstPrinter.PrintToTree(astNodes[i]));
+                    }
+
+                    astTextBox.Text = allAst.ToString();
+                }
+                else if (totalErrors > 0)
+                {
+                    astTextBox.Text = "AST не построено из-за ошибок.";
+                }
+                isJson = false;
+
                 if (totalErrors == 0)
                 {
-                    dataGridView.Text = "Анализ завершен. Ошибок не обнаружено!";
-                    MessageBox.Show("Анализ завершен.Ошибок не обнаружено!");
+                    MessageBox.Show("Анализ завершен. Ошибок не обнаружено!", "Успех",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 else
                 {
-                    MessageBox.Show($"Анализ завершен. Найдено ошибок: {totalErrors}");
+                    MessageBox.Show($"Анализ завершен. Найдено ошибок: {totalErrors}", "Обнаружены ошибки",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             catch (Exception ex)
@@ -1017,6 +1132,86 @@ namespace editor
             }
             catch (Exception ex)
             { }
+        }
+
+        private void paintButton_Click(object sender, EventArgs e)
+        {
+            if (lastAstNodes == null || lastAstNodes.Count == 0)
+            {
+                MessageBox.Show("Нет построенного AST. Сначала выполните анализ (Пуск).",
+                    "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            AstVisualizerForm visualizer = new AstVisualizerForm(lastAstNodes);
+            visualizer.Show();
+
+            if (visualizer != null && !visualizer.IsDisposed)
+            {
+                if (visualizer.WindowState == FormWindowState.Minimized)
+                    visualizer.WindowState = FormWindowState.Normal;
+
+                visualizer.BringToFront();
+                visualizer.Activate();
+
+                visualizer.UpdateAst(lastAstNodes);
+            }
+            else
+            {
+                visualizer = new AstVisualizerForm(lastAstNodes);
+                visualizer.FormClosed += (s, args) => visualizer = null;
+                visualizer.Show(this);
+            }
+        }
+
+        private void jsonbutton_Click(object sender, EventArgs e)
+        {
+            TextBox astTextBox = GetAstTextBox(tabControl1.SelectedTab);
+            if (!isJson)
+            {
+                if (lastAstNodes == null || lastAstNodes.Count == 0)
+                {
+                    MessageBox.Show("Нет построенного AST. Сначала выполните анализ (Пуск).",
+                    "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                StringBuilder jsonBuilder = new StringBuilder();
+                jsonBuilder.AppendLine("[");
+
+                for (int i = 0; i < lastAstNodes.Count; i++)
+                {
+                    jsonBuilder.Append(AstPrinter.PrintToJson(lastAstNodes[i]));
+                    if (i < lastAstNodes.Count - 1)
+                        jsonBuilder.AppendLine(",");
+                }
+
+                jsonBuilder.AppendLine("]");
+
+                astTextBox.Text = jsonBuilder.ToString();
+                isJson = true;
+            }
+            else
+            {
+                if (lastAstNodes.Count > 0)
+                {
+                    StringBuilder allAst = new StringBuilder();
+
+                    for (int i = 0; i < lastAstNodes.Count; i++)
+                    {
+                        if (i > 0)
+                        {
+                            allAst.AppendLine();
+                            allAst.AppendLine();
+                        }
+
+                        allAst.Append(AstPrinter.PrintToTree(lastAstNodes[i]));
+                    }
+
+                    astTextBox.Text = allAst.ToString();
+                }
+                isJson = false;
+            }
         }
     }
 }

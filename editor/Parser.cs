@@ -83,7 +83,7 @@ namespace editor
             }
             else if (tokens.Count == 0)
                 return errors;
-            else if (currentState != State.Error && currentState != State.End)
+            else if (currentState != State.Error && currentState != State.End && !(currentState == State.Start && tokens[tokens.Count - 1].Value == "(пробел)"))
             {
                 AddError("<конец файла>", currentLine, currentPos, "Неожиданный конец строки. Возможно, не закрыта скобка или отсутствует ';'");
             }
@@ -277,6 +277,7 @@ namespace editor
                     else if (token.Value == ")")
                     {
                         currentState = State.ExpectSemicolon;
+                        CommaParam = false;
                         stack.Push(StackSymbol.Right);
                         position++;
                     }
@@ -319,6 +320,7 @@ namespace editor
                     {
                         if (stack.Count > 0 && stack.Peek() == StackSymbol.Left)
                         {
+                            CommaParam = false;
                             stack.Pop();
                             currentState = State.ExpectSemicolon;
                             position++;

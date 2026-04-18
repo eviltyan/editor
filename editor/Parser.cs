@@ -67,9 +67,14 @@ namespace editor
             while (position < tokens.Count && currentState != State.Error)
             {
                 Token token = tokens[position];
+                Token right_token;
+                if (position < tokens.Count - 1)
+                    right_token = tokens[position + 1];
+                else
+                    right_token = token;
                 currentLine = token.Line;
                 currentPos = token.StartPos;
-                ProcessToken(token);
+                ProcessToken(token, right_token);
             }
 
             if (currentState == State.End && position >= tokens.Count)
@@ -86,7 +91,7 @@ namespace editor
             return errors;
         }
 
-        private void ProcessToken(Token token)
+        private void ProcessToken(Token token, Token right_token)
         {
             
             switch (currentState)
@@ -126,7 +131,7 @@ namespace editor
                     {
                         AddError(token.Value, token.Line, token.StartPos,
                             $"Ожидается '<-', найдено '{token.Value}'");
-                        string[] syncTokens = { "(", ";", ")", "," };
+                        string[] syncTokens = { "<-", "(", ";", ")", "," };
                         RecoverToSyncPoint(syncTokens);
                     }
                     break;
@@ -151,6 +156,11 @@ namespace editor
                     {
                         AddError(token.Value, token.Line, token.StartPos,
                             $"Ожидается 'c' или 'NULL', найдено '{token.Value}'");
+                        if (right_token.Value != "(")
+                        {
+                            AddError(token.Value, token.Line, token.StartPos,
+                            $"Ожидается '(', найдено '{token.Value}'");
+                        }
                         string[] syncTokens = { "(", ";", ")", "," };
                         RecoverToSyncPoint(syncTokens);
                     }
@@ -168,7 +178,7 @@ namespace editor
                     {
                         AddError(token.Value, token.Line, token.StartPos,
                             $"Ожидается '(', найдено '{token.Value}'");
-                        string[] syncTokens = { ";", ")", "," };
+                        string[] syncTokens = { "(", ";", ")", "," };
                         RecoverToSyncPoint(syncTokens);
                     }
                     break;
@@ -357,6 +367,12 @@ namespace editor
             while (position < tokens.Count && !syncTokens.Contains(tokens[position].Value))
             {
                 position++;
+                if (tokens[position].Value == "c" && tokens[position + 1].Value != "(")
+                {
+                    AddError(tokens[position + 1].Value, tokens[position + 1].Line, tokens[position + 1].StartPos,
+                            $"Ожидается '(', найдено '{tokens[position + 1].Value}'");
+                }
+
             }
 
             if (position < tokens.Count)

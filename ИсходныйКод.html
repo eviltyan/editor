@@ -5,23 +5,34 @@
     <title>Исходный код</title>
     <style>
         body {
-            background: #FFFFFF;
+            background: #ffffff;
             margin: 0;
-            padding: 20px;
+            padding: 30px;
             font-family: 'Segoe UI', 'Arial', sans-serif;
             line-height: 1.6;
             color: #000000;
         }
+        .content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #000000;
+        }
         pre {
             margin: 0;
-            padding: 10px;
-            background: #FFFFFF;
+            padding: 20px;
+            background: #f4f4f4;
             color: #000000;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 14px;
             line-height: 1.5;
             overflow-x: auto;
             border-radius: 5px;
+            border-left: 4px solid #333;
         }
         code {
             font-family: inherit;
@@ -29,8 +40,9 @@
     </style>
 </head>
 <body>
-<h1>Исходный код</h1>
-<pre><code>
+<div class="content">
+    <h1>Исходный код</h1>
+    <pre><code>
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -100,9 +112,14 @@ namespace editor
             while (position &lt; tokens.Count &amp;&amp; currentState != State.Error)
             {
                 Token token = tokens[position];
+                Token right_token;
+                if (position &lt; tokens.Count - 1)
+                    right_token = tokens[position + 1];
+                else
+                    right_token = token;
                 currentLine = token.Line;
                 currentPos = token.StartPos;
-                ProcessToken(token);
+                ProcessToken(token, right_token);
             }
 
             if (currentState == State.End &amp;&amp; position &gt;= tokens.Count)
@@ -119,7 +136,7 @@ namespace editor
             return errors;
         }
 
-        private void ProcessToken(Token token)
+        private void ProcessToken(Token token, Token right_token)
         {
             
             switch (currentState)
@@ -159,7 +176,7 @@ namespace editor
                     {
                         AddError(token.Value, token.Line, token.StartPos,
                             $"Ожидается '&lt;-', найдено '{token.Value}'");
-                        string[] syncTokens = { "(", ";", ")", "," };
+                        string[] syncTokens = { "&lt;-", "(", ";", ")", "," };
                         RecoverToSyncPoint(syncTokens);
                     }
                     break;
@@ -184,6 +201,11 @@ namespace editor
                     {
                         AddError(token.Value, token.Line, token.StartPos,
                             $"Ожидается 'c' или 'NULL', найдено '{token.Value}'");
+                        if (right_token.Value != "(")
+                        {
+                            AddError(token.Value, token.Line, token.StartPos,
+                            $"Ожидается '(', найдено '{token.Value}'");
+                        }
                         string[] syncTokens = { "(", ";", ")", "," };
                         RecoverToSyncPoint(syncTokens);
                     }
@@ -201,7 +223,7 @@ namespace editor
                     {
                         AddError(token.Value, token.Line, token.StartPos,
                             $"Ожидается '(', найдено '{token.Value}'");
-                        string[] syncTokens = { ";", ")", "," };
+                        string[] syncTokens = { "(", ";", ")", "," };
                         RecoverToSyncPoint(syncTokens);
                     }
                     break;
@@ -390,6 +412,12 @@ namespace editor
             while (position &lt; tokens.Count &amp;&amp; !syncTokens.Contains(tokens[position].Value))
             {
                 position++;
+                if (tokens[position].Value == "c" &amp;&amp; tokens[position + 1].Value != "(")
+                {
+                    AddError(tokens[position + 1].Value, tokens[position + 1].Line, tokens[position + 1].StartPos,
+                            $"Ожидается '(', найдено '{tokens[position + 1].Value}'");
+                }
+
             }
 
             if (position &lt; tokens.Count)
@@ -516,6 +544,7 @@ namespace editor
         }
     }
 }
-</code></pre>
+    </code></pre>
+</div>
 </body>
 </html>

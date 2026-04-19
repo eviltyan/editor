@@ -20,16 +20,8 @@ namespace editor
 
         public bool Declare(string name, string type, int line, int position, VectorDeclNode declaration)
         {
-            if (symbols.ContainsKey(name))
+            if (!CheckDuplicate(name, line, position))
             {
-                var existing = symbols[name];
-                errors.Add(new SemanticError
-                {
-                    Message = $"Ошибка: идентификатор \"{name}\" уже объявлен ранее (строка {existing.Line})",
-                    Line = line,
-                    Position = position,
-                    Fragment = name
-                });
                 return false;
             }
 
@@ -44,25 +36,26 @@ namespace editor
             return true;
         }
 
-        public bool Contains(string name)
+        public bool CheckDuplicate(string name, int line, int position)
         {
-            return symbols.ContainsKey(name);
-        }
-
-        public SymbolInfo Lookup(string name, int line, int position)
-        {
-            if (!symbols.ContainsKey(name))
+            if (symbols.ContainsKey(name))
             {
+                var existing = symbols[name];
                 errors.Add(new SemanticError
                 {
-                    Message = $"Ошибка: идентификатор \"{name}\" не объявлен",
+                    Message = $"Ошибка: идентификатор \"{name}\" уже объявлен ранее",
                     Line = line,
                     Position = position,
                     Fragment = name
                 });
-                return null;
+                return false;
             }
-            return symbols[name];
+            return true;
+        }
+
+        public bool Contains(string name)
+        {
+            return symbols.ContainsKey(name);
         }
 
         public void AddError(SemanticError error)

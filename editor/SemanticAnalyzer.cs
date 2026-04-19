@@ -84,12 +84,13 @@ namespace editor
             node.Name = vectorName;
             node.Line = tokens[position].Line;
             node.Position = tokens[position].StartPos;
-            position++;
 
             if (!IsValidIdentifierName(vectorName, node.Line, node.Position))
             {
                 currentNodeHasErrors = true;
             }
+
+            position++;
 
             SkipSpaces();
 
@@ -104,9 +105,9 @@ namespace editor
             if (position >= tokens.Count)
                 return null;
 
-            if (symbolTable.Contains(vectorName))
+            bool nameAlreadyExists = symbolTable.Contains(vectorName);
+            if (nameAlreadyExists)
             {
-                var existing = symbolTable.Lookup(vectorName, node.Line, node.Position);
                 currentNodeHasErrors = true;
             }
 
@@ -122,7 +123,7 @@ namespace editor
 
                 if (!currentNodeHasErrors)
                 {
-                    symbolTable.Declare(node.Name, node.Type, node.Line, node.Position, node);
+                    symbolTable.Declare(node.Name, "NULL", node.Line, node.Position, node);
                 }
 
                 position++;
@@ -155,10 +156,8 @@ namespace editor
                     string vectorType = DetermineVectorType(funcCall.Arguments);
                     node.Type = vectorType;
 
-                    if (!currentNodeHasErrors)
-                    {
-                        symbolTable.Declare(node.Name, vectorType, node.Line, node.Position, node);
-                    }
+
+                    symbolTable.Declare(node.Name, vectorType, node.Line, node.Position, node);
 
                     return node;
                 }
@@ -345,86 +344,329 @@ namespace editor
 
         private bool ValidateNumericValue(string value, ref bool isInteger, ref string finalValue, ref string type, int line, int position)
         {
-            double numValue;
-            try
-            {
-                numValue = double.Parse(value);
-                if (double.IsInfinity(numValue))
-                {
-                    finalValue = numValue > 0 ? "Inf" : "-Inf";
-                    isInteger = false;
-                    type = "numeric";
+            string originalValue = value;
+            string shortValue = ShortenNumber(value);
 
+            bool isNegative = value.StartsWith("-");
+            string trimmed = value.TrimStart('-');
+
+            const int MAX_SIGNIFICANT_DIGITS = 15;
+            const int MAX_INTEGER_DIGITS = 309;
+
+            string integerPart = "";
+            string fractionalPart = "";
+
+            if (trimmed.Contains("."))
+            {
+                int dotIndex = trimmed.IndexOf('.');
+                integerPart = trimmed.Substring(0, dotIndex);
+                fractionalPart = trimmed.Substring(dotIndex + 1);
+            }
+            else
+            {
+                integerPart = trimmed;
+                fractionalPart = "";
+            }
+
+            string trimmedInteger = integerPart.TrimStart('0');
+            if (string.IsNullOrEmpty(trimmedInteger))
+                trimmedInteger = "0";
+
+            string trimmedFractional = fractionalPart.TrimEnd('0');
+
+            string normalizedValue;
+            if (!string.IsNullOrEmpty(trimmedFractional))
+            {
+                normalizedValue = trimmedInteger + "." + trimmedFractional;
+            }
+            else
+            {
+                normalizedValue = trimmedInteger;
+            }
+
+            if (normalizedValue != trimmed)
+            {
+                finalValue = isNegative ? "-" + normalizedValue : normalizedValue;
+
+                bool hadLeadingZeros = integerPart.Length > 1 && integerPart.StartsWith("0");
+                bool hadTrailingZeros = fractionalPart.EndsWith("0") && fractionalPart.Length > 0;
+
+                if (normalizedValue == "0")
+                {
+                    isInteger = false;
+                    //errors.Add(new SemanticError
+                    //{
+                    //    Message = $"Примечание: число '{shortValue}' эквивалентно нулю и преобразовано в 0",
+                    //    Line = line,
+                    //    Position = position,
+                    //    Fragment = value
+                    //});
+                }
+                else if (hadLeadingZeros && hadTrailingZeros)
+                {
+                    //errors.Add(new SemanticError
+                    //{
+                    //    Message = $"Примечание: число '{shortValue}' нормализовано: убраны ведущие нули в целой части и замыкающие нули в дробной части",
+                    //    Line = line,
+                    //    Position = position,
+                    //    Fragment = value
+                    //});
+                }
+                else if (hadLeadingZeros)
+                {
+                    //errors.Add(new SemanticError
+                    //{
+                    //    Message = $"Примечание: число '{shortValue}' нормализовано: убраны ведущие нули в целой части",
+                    //    Line = line,
+                    //    Position = position,
+                    //    Fragment = value
+                    //});
+                }
+                else if (hadTrailingZeros)
+                {
+                    //errors.Add(new SemanticError
+                    //{
+                    //    Message = $"Примечание: число '{shortValue}' нормализовано: убраны замыкающие нули в дробной части",
+                    //    Line = line,
+                    //    Position = position,
+                    //    Fragment = value
+                    //});
+                }
+
+                value = finalValue;
+                trimmed = normalizedValue;
+            }
+
+
+            if (integerPart.Length > MAX_INTEGER_DIGITS)
+            {
+                finalValue = isNegative ? "-Inf" : "Inf";
+                isInteger = false;
+                type = "numeric";
+                errors.Add(new SemanticError
+                {
+                    Message = $"Примечание: число '{shortValue}' имеет более {MAX_INTEGER_DIGITS} цифр и преобразовано в {finalValue}",
+                    Line = line,
+                    Position = position,
+                    Fragment = value
+                });
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(fractionalPart) && integerPart == "0")
+            {
+                int leadingZeros = 0;
+                bool hasSignificant = false;
+
+                foreach (char c in fractionalPart)
+                {
+                    if (c == '0')
+                        leadingZeros++;
+                    else if (c >= '1' && c <= '9')
+                    {
+                        hasSignificant = true;
+                        break;
+                    }
+                }
+
+                if (hasSignificant && leadingZeros >= 15)
+                {
+                    finalValue = "0";
+                    isInteger = false;
                     errors.Add(new SemanticError
                     {
-                        Message = $"Примечание: число '{value}' слишком велико и преобразовано в {finalValue}",
+                        Message = $"Примечание: число '{shortValue}' имеет {leadingZeros} нулей после запятой и преобразовано в 0",
                         Line = line,
                         Position = position,
                         Fragment = value
                     });
                     return false;
                 }
-
-
-                if (isInteger)
-                {
-                    const int R_INT_MIN = -2147483647;
-                    const int R_INT_MAX = 2147483647;
-
-                    if (numValue < R_INT_MIN || numValue > R_INT_MAX)
-                    {
-                        isInteger = false;
-                        finalValue = value;
-                        type = "numeric";
-
-                        errors.Add(new SemanticError
-                        {
-                            Message = $"Примечание: значение '{value}' выходит за пределы integer и преобразовано в numeric",
-                            Line = line,
-                            Position = position,
-                            Fragment = value
-                        });
-                        return false;
-                    }
-                }
             }
-            catch 
+
+            string allDigits = integerPart + fractionalPart;
+            string significantDigits = allDigits.TrimStart('0');
+
+            if (significantDigits.Length > MAX_SIGNIFICANT_DIGITS)
             {
-                string trimmed = value.TrimStart('-');
+                string roundedValue = TruncateToSignificantDigits(
+                    integerPart, fractionalPart, MAX_SIGNIFICANT_DIGITS, isNegative);
 
-                if (trimmed.Contains("."))
+                if (roundedValue != value)
                 {
-                    int dotIndex = trimmed.IndexOf('.');
-                    string afterDot = trimmed.Substring(dotIndex + 1);
+                    finalValue = roundedValue;
+                    isInteger = false;
+                    type = "numeric";
 
-                    int leadingZeros = 0;
-                    foreach (char c in afterDot)
+                    errors.Add(new SemanticError
                     {
-                        if (c == '0')
-                            leadingZeros++;
-                        else if (c >= '1' && c <= '9')
-                            break;
+                        Message = $"Примечание: число '{shortValue}' имеет {significantDigits.Length} значащих цифр. Допустимо  {MAX_SIGNIFICANT_DIGITS} значащих цифр." +
+                                    $"Значение обрезано до '{roundedValue}'",
+                        Line = line,
+                        Position = position,
+                        Fragment = value
+                    });
+                    return false;
+                }
+            }
+
+            if (isInteger)
+            {
+                if (!int.TryParse(value, out int intValue))
+                {
+                    isInteger = false;
+                    type = "numeric";
+                    finalValue = value;
+                    errors.Add(new SemanticError
+                    {
+                        Message = $"Примечание: значение '{shortValue}' выходит за пределы integer и преобразовано в numeric",
+                        Line = line,
+                        Position = position,
+                        Fragment = value
+                    });
+                    return false;
+                }
+            }
+
+            if (string.IsNullOrEmpty(finalValue))
+                finalValue = value;
+
+            return false;
+        }
+
+        private string TruncateToSignificantDigits(string integerPart, string fractionalPart,
+        int maxDigits, bool isNegative)
+        {
+            string significantInteger = integerPart.TrimStart('0');
+
+            if (!string.IsNullOrEmpty(significantInteger))
+            {
+                if (significantInteger.Length >= maxDigits)
+                {
+                    string truncated = significantInteger.Substring(0, maxDigits);
+
+                    int zerosToAdd = integerPart.Length - significantInteger.Length;
+                    string result = new string('0', zerosToAdd) + truncated;
+
+                    return isNegative ? "-" + result : result;
+                }
+                else
+                {
+                    int remainingDigits = maxDigits - significantInteger.Length;
+
+                    string truncatedFractional = "";
+                    if (fractionalPart.Length > 0)
+                    {
+                        truncatedFractional = fractionalPart.Substring(0,
+                            Math.Min(remainingDigits, fractionalPart.Length));
                     }
 
-                    if (leadingZeros >= 308)
-                    {
-                        finalValue = "0";
-                        isInteger = false;
+                    string result = integerPart;
+                    if (!string.IsNullOrEmpty(truncatedFractional))
+                        result += "." + truncatedFractional;
 
-                        errors.Add(new SemanticError
+                    return isNegative ? "-" + result : result;
+                }
+            }
+            else
+            {
+                int leadingZeros = 0;
+                foreach (char c in fractionalPart)
+                {
+                    if (c == '0')
+                        leadingZeros++;
+                    else
+                        break;
+                }
+
+                string significantFractional = fractionalPart.Substring(leadingZeros);
+
+                if (significantFractional.Length > maxDigits)
+                {
+                    significantFractional = significantFractional.Substring(0, maxDigits);
+                }
+
+                string result = "0." + new string('0', leadingZeros) + significantFractional;
+                return isNegative ? "-" + result : result;
+            }
+        }
+
+        private string ShortenNumber(string value, int maxLength = 30)
+        {
+            if (value.Length <= maxLength)
+                return value;
+
+            bool isNegative = value.StartsWith("-");
+            string absValue = isNegative ? value.Substring(1) : value;
+
+            if (absValue.Contains("."))
+            {
+                int dotIndex = absValue.IndexOf('.');
+                string integerPart = absValue.Substring(0, dotIndex);
+                string fractionalPart = absValue.Substring(dotIndex + 1);
+
+                string trimmedInteger = integerPart.TrimStart('0');
+                int leadingZeros = integerPart.Length - trimmedInteger.Length;
+
+                if (!string.IsNullOrEmpty(trimmedInteger) && trimmedInteger != "0")
+                {
+                    if (trimmedInteger.Length > 15)
+                    {
+                        string shortened = trimmedInteger.Substring(0, 5) + "..." +
+                                          trimmedInteger.Substring(trimmedInteger.Length - 5);
+                        string result = new string('0', leadingZeros) + shortened;
+                        return isNegative ? "-" + result : result;
+                    }
+                    else
+                    {
+                        if (fractionalPart.Length > 10)
                         {
-                            Message = $"Примечание: число '{value}' имеет более 308 нулей после запятой и преобразовано в 0",
-                            Line = line,
-                            Position = position,
-                            Fragment = value
-                        });
-                        return false;
+                            string shortFractional = fractionalPart.Substring(0, 5) + "..." +
+                                                    fractionalPart.Substring(fractionalPart.Length - 2);
+                            return (isNegative ? "-" : "") + absValue.Substring(0, dotIndex + 1) + shortFractional;
+                        }
+                    }
+                }
+                else
+                {
+                    string trimmedFractional = fractionalPart.TrimStart('0');
+                    int leadingZerosInFraction = fractionalPart.Length - trimmedFractional.Length;
+
+                    if (leadingZerosInFraction > 10)
+                    {
+                        string zeros = new string('0', 3);
+                        return (isNegative ? "-" : "") + "0." + zeros + "..." +
+                               (trimmedFractional.Length > 0 ? trimmedFractional.Substring(0, Math.Min(3, trimmedFractional.Length)) : "0");
+                    }
+                    else if (trimmedFractional.Length > 10)
+                    {
+                        string shortFrac = trimmedFractional.Substring(0, 5) + "..." +
+                                          trimmedFractional.Substring(trimmedFractional.Length - 3);
+                        return (isNegative ? "-" : "") + "0." + new string('0', leadingZerosInFraction) + shortFrac;
                     }
                 }
             }
-            
-            finalValue = value;
-            return false;
+            else
+            {
+                string trimmed = absValue.TrimStart('0');
+                int leadingZeros = absValue.Length - trimmed.Length;
+
+                if (trimmed.Length > 15)
+                {
+                    string shortened = trimmed.Substring(0, 5) + "..." +
+                                      trimmed.Substring(trimmed.Length - 5);
+                    string result = new string('0', leadingZeros) + shortened;
+                    return isNegative ? "-" + result : result;
+                }
+            }
+
+            if (absValue.Length > maxLength)
+            {
+                string shortValue = absValue.Substring(0, maxLength - 3) + "...";
+                return isNegative ? "-" + shortValue : shortValue;
+            }
+
+            return value;
         }
 
         private void SkipSpaces()

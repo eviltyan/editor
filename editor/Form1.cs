@@ -46,8 +46,8 @@ namespace editor
             dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 
             dataGridView.Columns.Add("Fragment", "Неверный фрагмент");
-            dataGridView.Columns["Fragment"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            dataGridView.Columns.Add("Location", "Местоположение");
+            dataGridView.Columns["Fragment"].Width = 150;
+            dataGridView.Columns["Fragment"].MinimumWidth = 100; dataGridView.Columns.Add("Location", "Местоположение");
             dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dataGridView.Columns.Add("Description", "Описание ошибки");
             dataGridView.Columns["Description"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
@@ -141,7 +141,8 @@ namespace editor
             dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 
             dataGridView.Columns.Add("Fragment", "Неверный фрагмент");
-            dataGridView.Columns["Fragment"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dataGridView.Columns["Fragment"].Width = 150;
+            dataGridView.Columns["Fragment"].MinimumWidth = 100;
             dataGridView.Columns.Add("Location", "Местоположение");
             dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dataGridView.Columns.Add("Description", "Описание ошибки");
@@ -906,6 +907,10 @@ namespace editor
                                            .ThenBy(e => e.Position)
                                            .ToList();
 
+                List<SemanticError> sortedSemanticErrors = semanticErrors.OrderBy(e => e.Line)
+                                           .ThenBy(e => e.Position)
+                                           .ToList();
+
                 foreach (var error in sortedErrors)
                 {
                     int rowIndex = dataGridView.Rows.Add(
@@ -916,7 +921,7 @@ namespace editor
                     dataGridView.Rows[rowIndex].DefaultCellStyle.BackColor = Color.FromArgb(255, 240, 240);
                 }
 
-                foreach (var error in semanticErrors)
+                foreach (var error in sortedSemanticErrors)
                 {
                     int rowIndex = dataGridView.Rows.Add(
                         error.Fragment,

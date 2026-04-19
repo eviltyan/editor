@@ -895,13 +895,10 @@ namespace editor
                 List<VectorDeclNode> astNodes = new List<VectorDeclNode>();
                 List<SemanticError> semanticErrors = new List<SemanticError>();
 
-                if (allErrors.Count == 0)
-                {
-                    SemanticAnalyzer semantic = new SemanticAnalyzer();
-                    var result = semantic.Analyze(tokens);
-                    astNodes = result.astNodes;
-                    semanticErrors = result.errors;
-                }
+                SemanticAnalyzer semantic = new SemanticAnalyzer();
+                var result = semantic.Analyze(tokens);
+                astNodes = result.astNodes;
+                semanticErrors = result.errors;
 
                 List<SyntaxError> sortedErrors = allErrors.OrderBy(e => e.Line)
                                            .ThenBy(e => e.Position)

@@ -21,7 +21,7 @@
   
   
 ### Корректные входные строки:  
-vec <- c("Swift", TRUE, 1, 2.5, 'hello');  
+vec <- c("Swift", TRUE, 1, 2.5, NULL);  
   
 numbers <- c(1, 2, 3.6, 4, 5);  
   

@@ -46,7 +46,7 @@ namespace editor
             dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 
             dataGridView.Columns.Add("Fragment", "Неверный фрагмент");
-            dataGridView.Columns["Fragment"].Width = 150;
+            dataGridView.Columns["Fragment"].Width = 250;
             dataGridView.Columns["Fragment"].MinimumWidth = 100; dataGridView.Columns.Add("Location", "Местоположение");
             dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dataGridView.Columns.Add("Description", "Описание ошибки");
@@ -141,7 +141,7 @@ namespace editor
             dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 
             dataGridView.Columns.Add("Fragment", "Неверный фрагмент");
-            dataGridView.Columns["Fragment"].Width = 150;
+            dataGridView.Columns["Fragment"].Width = 250;
             dataGridView.Columns["Fragment"].MinimumWidth = 100;
             dataGridView.Columns.Add("Location", "Местоположение");
             dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;

@@ -1136,8 +1136,36 @@ namespace editor
             { }
         }
 
+        private AstVisualizerForm currentVisualizer = null;
+
         private void paintButton_Click(object sender, EventArgs e)
         {
+            //if (lastAstNodes == null || lastAstNodes.Count == 0)
+            //{
+            //    MessageBox.Show("Нет построенного AST. Сначала выполните анализ (Пуск).",
+            //        "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            //    return;
+            //}
+
+            //AstVisualizerForm visualizer = new AstVisualizerForm(lastAstNodes);
+            //visualizer.Show();
+
+            //if (visualizer != null && !visualizer.IsDisposed)
+            //{
+            //    if (visualizer.WindowState == FormWindowState.Minimized)
+            //        visualizer.WindowState = FormWindowState.Normal;
+
+            //    visualizer.BringToFront();
+            //    visualizer.Activate();
+
+            //    visualizer.UpdateAst(lastAstNodes);
+            //}
+            //else
+            //{
+            //    visualizer = new AstVisualizerForm(lastAstNodes);
+            //    visualizer.FormClosed += (s, args) => visualizer = null;
+            //    visualizer.Show(this);
+            //}
             if (lastAstNodes == null || lastAstNodes.Count == 0)
             {
                 MessageBox.Show("Нет построенного AST. Сначала выполните анализ (Пуск).",
@@ -1145,24 +1173,21 @@ namespace editor
                 return;
             }
 
-            AstVisualizerForm visualizer = new AstVisualizerForm(lastAstNodes);
-            visualizer.Show();
-
-            if (visualizer != null && !visualizer.IsDisposed)
+            if (currentVisualizer != null && !currentVisualizer.IsDisposed)
             {
-                if (visualizer.WindowState == FormWindowState.Minimized)
-                    visualizer.WindowState = FormWindowState.Normal;
+                if (currentVisualizer.WindowState == FormWindowState.Minimized)
+                    currentVisualizer.WindowState = FormWindowState.Normal;
 
-                visualizer.BringToFront();
-                visualizer.Activate();
+                currentVisualizer.BringToFront();
+                currentVisualizer.Activate();
 
-                visualizer.UpdateAst(lastAstNodes);
+                currentVisualizer.UpdateAst(lastAstNodes);
             }
             else
             {
-                visualizer = new AstVisualizerForm(lastAstNodes);
-                visualizer.FormClosed += (s, args) => visualizer = null;
-                visualizer.Show(this);
+                currentVisualizer = new AstVisualizerForm(lastAstNodes);
+                currentVisualizer.FormClosed += (s, args) => currentVisualizer = null;
+                currentVisualizer.Show(this);
             }
         }
 

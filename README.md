@@ -22,14 +22,14 @@
 G = (VN, VT, P, Z)
 G[<Z>]:
 •	Z = <Expression>;
-•	VT = {a, b, c, ..., z, A, B, C, ..., Z,  , _ , . , ; , +, - , * , / , 0, 1, 2, ..., 9};
+•	VT = {a, b, c, ..., z, A, B, C, ..., Z,  , _ , . , ; , +, - , * , / , ( , ) , 0, 1, 2, ..., 9};
 •	VN = {<Expression>, <Addition>, <Term>, <Multiplication>, <Factor>, <Identificator>, <Number>}.
 •	P:
 1. <Expression> → <Term> <Addition> “;”
 2. <Addition> → ε | “+” <Term> <Addition> | “-” <Term> <Addition>
 3. <Term> → <Factor> <Multiplication>
 4. <Multiplication> → ε | “*” <Factor> <Multiplication> | “/” <Factor> <Multiplication>
-5. <Factor> → <Number> | <Identificator> | (<Expression>)
+5. <Factor> → <Number> | <Identificator> | “(” <Expression> “)”
 6. <Identificator> → letter {letter | digit | “_” | “.”}
 7. <Number> → digit {digit}
 

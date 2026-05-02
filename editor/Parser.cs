@@ -1,501 +1,563 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace editor
 {
-    public class SyntaxError
+    public class Parser
     {
-        public string InvalidFragment { get; set; }
-        public int Line { get; set; }
-        public int Position { get; set; }
-        public string Description { get; set; }
-        public string Location => $"строка {Line}, позиция {Position}";
-    }
-
-    public class SyntaxAutomaton
-    {
-        private enum State
-        {
-            Start,
-            InNameVec,
-            ExpectArrow,
-            ExpectMinus,
-            ExpectCOrNull,
-            InFuncCall,
-            InParams,
-            AfterParam,
-            InNumber,
-            InNegativeNumber,
-            AfterDecimalPoint,
-            InString,
-            ExpectSemicolon,
-            End,
-            Error
-        }
-
-        private enum StackSymbol
-        {
-            Left,
-            Right
-        }
-
-        private bool CommaParam = false;
-
-        private State currentState;
-        private Stack<StackSymbol> stack;
-        private List<Token> tokens;
+        private readonly List<Token> tokens;
         private int position;
-        private List<SyntaxError> errors;
-        private int currentLine;
-        private int currentPos;
+        private readonly List<SyntaxError> errors;
+        private readonly TetraGenerator tetraGenerator;
 
-        public SyntaxAutomaton()
+        public IReadOnlyList<SyntaxError> Errors => errors;
+        public List<Tetra> Tetras => tetraGenerator.Tetras;
+
+        public Parser(List<Token> inputTokens)
         {
-            stack = new Stack<StackSymbol>();
+            tokens = inputTokens?
+                .Where(t => t != null && t.Type != TokenType.Eof && t.Type != TokenType.Space)
+                .ToList() ?? new List<Token>();
+            position = 0;
             errors = new List<SyntaxError>();
+            tetraGenerator = new TetraGenerator();
         }
 
-        public List<SyntaxError> Parse(List<Token> tokens)
+        private Token CurrentToken
         {
-            this.tokens = tokens;
-            this.position = 0;
-            this.currentState = State.Start;
-            this.errors = new List<SyntaxError>();
-            this.stack.Clear();
-
-            while (position < tokens.Count && currentState != State.Error)
+            get
             {
-                Token token = tokens[position];
-                Token right_token;
-                if (position < tokens.Count - 1)
-                    right_token = tokens[position + 1];
+                if (position < tokens.Count)
+                    return tokens[position];
+                if (tokens.Count > 0)
+                {
+                    var last = tokens[tokens.Count - 1];
+                    int endPos = last.EndPosition;
+                    return new Token(TokenType.Eof, "", endPos, endPos, last.Line);
+                }
+                return new Token(TokenType.Eof, "", 0, 0, 1);
+            }
+        }
+
+        private bool IsStartOfFactor(Token token)
+        {
+            return token.Type == TokenType.Number ||
+                   token.Type == TokenType.Identifier ||
+                   token.Type == TokenType.LParen;
+        }
+
+        private bool IsOperator(Token token)
+        {
+            return token.Type == TokenType.Plus ||
+                   token.Type == TokenType.Minus ||
+                   token.Type == TokenType.Multiply ||
+                   token.Type == TokenType.Divide;
+        }
+
+        private bool CheckOperandAfterOperator(string opStr, int opLine, int opPos)
+        {
+            var errorFragments = new List<string>();
+            int errorLine = opLine;
+            int errorPos = opPos + opStr.Length;
+
+            while (position < tokens.Count && tokens[position].Type == TokenType.Error)
+            {
+                if (errorFragments.Count == 0)
+                {
+                    errorLine = tokens[position].Line;
+                    errorPos = tokens[position].Position;
+                }
+                errorFragments.Add(tokens[position].Value);
+                position++;
+            }
+
+            if (CurrentToken.Type == TokenType.Eof || IsOperator(CurrentToken) || CurrentToken.Type == TokenType.RParen || CurrentToken.Type == TokenType.Semicolon)
+            {
+                string fragment;
+                string what;
+
+                if (errorFragments.Count > 0)
+                {
+                    fragment = string.Join("", errorFragments);
+                    if (IsOperator(CurrentToken))
+                    {
+                        fragment += " " + CurrentToken.Value;
+                        position++;
+                    }
+                    what = "ошибочный символ";
+                }
+                else if (CurrentToken.Type == TokenType.Eof)
+                {
+                    fragment = "конец строки";
+                    what = "конец строки";
+                }
+                else if (CurrentToken.Type == TokenType.Semicolon)
+                {
+                    fragment = ";";
+                    what = "';'";
+                    errorLine = CurrentToken.Line;
+                    errorPos = CurrentToken.Position;
+                }
+                else if (CurrentToken.Type == TokenType.RParen)
+                {
+                    fragment = ")";
+                    what = "')'";
+                    errorLine = CurrentToken.Line;
+                    errorPos = CurrentToken.Position;
+                }
                 else
-                    right_token = token;
-                currentLine = token.Line;
-                currentPos = token.StartPos;
-                ProcessToken(token, right_token);
-            }
-
-            if (currentState == State.End && position >= tokens.Count)
-            {
-                // Успех
-            }
-            else if (tokens.Count == 0)
-                return errors;
-            else if (currentState != State.Error && currentState != State.End)
-            {
-                AddError("<конец файла>", currentLine, currentPos, "Неожиданный конец строки. Возможно, не закрыта скобка или отсутствует ';'");
-            }
-
-            return errors;
-        }
-
-        private void ProcessToken(Token token, Token right_token)
-        {
-            
-            switch (currentState)
-            {
-                case State.Start:
-                    // <Def> → <Letter> <NameVec>
-                    if (IsLetter(token))
-                    {
-                        currentState = State.InNameVec;
-                        position++;
-                    }
-                    else if (token.Value == "(пробел)")
-                    {
-                        position++;
-                    }
-                    else
-                    {
-                        AddError(token.Value, token.Line, token.StartPos,
-                            $"Ожидается идентификатор (буква), найдено '{token.Value}'");
-                        string[] syncTokens = { "<-", "(", ";", ")", "," };
-                        RecoverToSyncPoint(syncTokens);
-                    }
-                    break;
-
-                case State.InNameVec:
-                    // <NameVec> → <Letter> <NameVec> | "<" <Arrow>
-                    if (token.Value == "<-")
-                    {
-                        currentState = State.ExpectCOrNull;
-                        position++;
-                    }
-                    else if (token.Value == "(пробел)")
-                    {
-                        position++;
-                    }
-                    else
-                    {
-                        AddError(token.Value, token.Line, token.StartPos,
-                            $"Ожидается '<-', найдено '{token.Value}'");
-                        string[] syncTokens = { "<-", "(", ";", ")", "," };
-                        RecoverToSyncPoint(syncTokens);
-                    }
-                    break;
-
-                case State.ExpectCOrNull:
-                    // <RightPart> → "c" <FuncCall> | "NULL;"
-                    if (token.Value == "c" && token.Type == "id")
-                    {
-                        currentState = State.InFuncCall;
-                        position++;
-                    }
-                    else if (token.Value == "(пробел)")
-                    {
-                        position++;
-                    }
-                    else if (token.Value == "NULL" && token.Code == 14)
-                    {
-                        currentState = State.ExpectSemicolon;
-                        position++;
-                    }
-                    else
-                    {
-                        AddError(token.Value, token.Line, token.StartPos,
-                            $"Ожидается 'c' или 'NULL', найдено '{token.Value}'");
-                        if (right_token.Value != "(")
-                        {
-                            AddError(token.Value, token.Line, token.StartPos,
-                            $"Ожидается '(', найдено '{token.Value}'");
-                        }
-                        string[] syncTokens = { "(", ";", ")", "," };
-                        RecoverToSyncPoint(syncTokens);
-                    }
-                    break;
-
-                case State.InFuncCall:
-                    // <FuncCall> → "(" <Param> | “();”
-                    if (token.Value == "(")
-                    {
-                        stack.Push(StackSymbol.Left);
-                        currentState = State.InParams;
-                        position++;
-                    }
-                    else
-                    {
-                        AddError(token.Value, token.Line, token.StartPos,
-                            $"Ожидается '(', найдено '{token.Value}'");
-                        string[] syncTokens = { "(", ";", ")", "," };
-                        RecoverToSyncPoint(syncTokens);
-                    }
-                    break;
-
-                case State.InParams:
-                    // <Param> → “-“ <UnsignedInt>, <Digit> <Int>, “"” <CharSeq> | “TRUE,” | “FALSE,” | “NULL,” | “TRUE);” | “FALSE);” | “NULL);”
-                    if (token.Value == ")")
-                    {
-                        if (CommaParam)
-                        {
-                            CommaParam = false;
-                            AddError(token.Value, token.Line, token.StartPos,
-                                "Неожиданная ')'. После запятой ожидается параметр (число, строка, TRUE, FALSE, NULL)");
-                            string[] syncTokens = { ";", ")", "," };
-                            RecoverToSyncPoint(syncTokens);
-                        }
-                        else if (stack.Count > 0 && stack.Peek() == StackSymbol.Left)
-                        {
-                            stack.Pop();
-                            currentState = State.ExpectSemicolon;
-                            position++;
-                        }
-                        else
-                        {
-                            AddError(token.Value, token.Line, token.StartPos,
-                                "Неожиданная ')'. После запятой ожидается параметр (число, строка, TRUE, FALSE, NULL)");
-                            string[] syncTokens = { ";", ")", "," };
-                            RecoverToSyncPoint(syncTokens);
-                        }
-                    }
-                    else if (token.Value == "(пробел)")
-                    {
-                        position++;
-                    }
-                    else if (IsNumberParamStart(token))
-                    {
-                        if (token.Value == "-")
-                        {
-                            currentState = State.InNegativeNumber;
-                            position++;
-                        }
-                        else
-                        {
-                            currentState = State.InNumber;
-                        }
-                    }
-                    else if (IsStringParamStart(token))
-                    {
-                        currentState = State.AfterParam;
-                        position++;
-                    }
-                    else if (token.Value == "TRUE" || token.Value == "NULL" || token.Value == "FALSE")
-                    {
-                        currentState = State.AfterParam;
-                        position++;
-                    }
-                    else
-                    {
-                        AddError(token.Value, token.Line, token.StartPos,
-                            $"Ожидается параметр (число, строка, TRUE, FALSE, NULL) или закрытие скобки, найдено '{token.Value}'");
-                        RecoverToNextParam();
-                    }
-                    break;
-
-                case State.InNumber:
-                    /*
-                      <Int> → <Digit> <Int> | “.” <SecondPart> | <Digit> <EndParams> | “,” <Param>
-                      <SecondPart> → <Digit> <SecondPart> | <Digit> <EndParams> | “,” <Param>
-                     */
-                    if (IsNumber(token))
-                    {
-                        if (token.Value.Contains("."))
-                        {
-                            string[] parts = token.Value.Split('.');
-                            if (string.IsNullOrEmpty(parts[0]) || parts[0].Length == 0)
-                            {
-                                AddError(token.Value, token.Line, token.StartPos,
-                                    "Ожидается цифра перед десятичной точкой");
-                            }
-                            if (string.IsNullOrEmpty(parts[1]) || parts[1].Length == 0)
-                            {
-                                AddError(token.Value, token.Line, token.StartPos,
-                                    "Ожидается цифра после десятичной точки");
-                            }
-                        }
-
-                        currentState = State.AfterParam;
-                        position++;
-                    }
-                    else if (token.Value == ",")
-                    {
-                        currentState = State.InParams;
-                        CommaParam = true;
-                        position++;
-                    }
-                    else if (token.Value == ")")
-                    {
-                        currentState = State.ExpectSemicolon;
-                        stack.Push(StackSymbol.Right);
-                        position++;
-                    }
-                    else
-                    {
-                        AddError(token.Value, token.Line, token.StartPos,
-                            $"Ожидается число, найдено '{token.Value}'");
-                        RecoverToNextParam();
-                    }
-                    break;
-
-                case State.InNegativeNumber:
-                    // <UnsignedInt> → <Digit> <Int> | <Digit> <EndParams>
-                    if (IsNumber(token))
-                    {
-                        currentState = State.AfterParam;
-                        position++;
-                    }
-                    else
-                    {
-                        AddError(token.Value, token.Line, token.StartPos,
-                            $"Ожидается число после '-', найдено '{token.Value}'");
-                        RecoverToNextParam();
-                    }
-                    break;
-
-                case State.AfterParam:
-                    // “,” <Param> | <_> <EndParams>
-                    if (token.Value == ",")
-                    {
-                        currentState = State.InParams;
-                        CommaParam = true;
-                        position++;
-                    }
-                    else if (token.Value == "(пробел)")
-                    {
-                        position++;
-                    }
-                    else if (token.Value == ")")
-                    {
-                        if (stack.Count > 0 && stack.Peek() == StackSymbol.Left)
-                        {
-                            stack.Pop();
-                            currentState = State.ExpectSemicolon;
-                            position++;
-                        }
-                        else
-                        {
-                            AddError(token.Value, token.Line, token.StartPos,
-                                "Неожиданная ')'");
-                            string[] syncTokens = { ";", ")", "," };
-                            RecoverToSyncPoint(syncTokens);
-                        }
-                    }
-                    else
-                    {
-                        AddError(token.Value, token.Line, token.StartPos,
-                            $"Ожидается ',' или ')', найдено '{token.Value}'");
-                        RecoverToNextParam();
-                    }
-                    break;
-
-                case State.ExpectSemicolon:
-                    if (token.Value == ";")
-                    {
-                        currentState = State.End;
-                        position++;
-                    }
-                    else
-                    {
-                        AddError(token.Value, token.Line, token.StartPos,
-                            $"Ожидается ';', найдено '{token.Value}'");
-                        string[] syncTokens = { ";" };
-                        RecoverToSyncPoint(syncTokens);
-                    }
-                    break;
-
-                case State.End:
-                    currentState = State.Start;
-                    break;
-            }
-        }
-
-        private void RecoverToSyncPoint(string[] syncTokens)
-        {
-            //string[] syncTokens = { "<-", "(", ";", ")", ","};
-
-            while (position < tokens.Count && !syncTokens.Contains(tokens[position].Value))
-            {
-                position++;
-                if (tokens[position].Value == "c" && tokens[position + 1].Value != "(")
                 {
-                    AddError(tokens[position + 1].Value, tokens[position + 1].Line, tokens[position + 1].StartPos,
-                            $"Ожидается '(', найдено '{tokens[position + 1].Value}'");
+                    fragment = CurrentToken.Value;
+                    what = $"'{CurrentToken.Value}'";
+                    errorLine = CurrentToken.Line;
+                    errorPos = CurrentToken.Position;
                 }
 
-            }
-
-            if (position < tokens.Count)
-            {
-                Token syncToken = tokens[position];
-
-                switch (syncToken.Value)
+                errors.Add(new SyntaxError
                 {
-                    case ";":
-                        currentState = State.End;
-                        position++;
-                        break;
+                    InvalidFragment = fragment,
+                    Line = errorLine,
+                    Position = errorPos,
+                    Description = $"После '{opStr}' ожидалось число, идентификатор или '('"
+                });
 
-                    case "<-":
-                        currentState = State.ExpectCOrNull;
-                        position++;
-                        break;
-
-                    case "(":
-                        while (stack.Count > 0 && stack.Peek() != StackSymbol.Right)
-                        {
-                            stack.Pop();
-                        }
-                        if (stack.Count > 0)
-                        {
-                            stack.Pop();
-                        }
-                        currentState = State.InParams;
-                        stack.Push(StackSymbol.Left);
-                        position++;
-                        break;
-
-                    case ")":
-                        while (stack.Count > 0 && stack.Peek() != StackSymbol.Left)
-                        {
-                            stack.Pop();
-                        }
-                        if (stack.Count > 0)
-                        {
-                            stack.Pop();
-                        }
-                        currentState = State.ExpectSemicolon;
-                        stack.Push(StackSymbol.Right);
-                        position++;
-                        break;
-
-                    case ",":
-                        currentState = State.InParams;
-                        position++;
-                        break;
-                }
+                return false;
             }
-            else
-            {
-                currentState = State.Error;
-            }
+
+            return true;
         }
 
-        private void RecoverToNextParam()
+        private string ParseE()
         {
-            string[] syncTokens = { ",", ")"};
+            string result = ParseT();
+            result = ParseA(result);
+            return result;
+        }
 
-            while (position < tokens.Count && !syncTokens.Contains(tokens[position].Value))
+        private string ParseA(string inherited)
+        {
+            while (position < tokens.Count &&
+                   (CurrentToken.Type == TokenType.Plus || CurrentToken.Type == TokenType.Minus))
             {
+                string opStr = CurrentToken.Value;
+                int opLine = CurrentToken.Line;
+                int opPos = CurrentToken.Position;
                 position++;
+
+                if (!CheckOperandAfterOperator(opStr, opLine, opPos))
+                    return inherited;
+
+                string tResult = ParseT();
+                inherited = tetraGenerator.AddTetra(opStr, inherited, tResult);
+
+                if (position < tokens.Count && IsStartOfFactor(CurrentToken))
+                    break;
+            }
+            return inherited;
+        }
+
+        private string ParseT()
+        {
+            string result = ParseF();
+            result = ParseB(result);
+            return result;
+        }
+
+        private string ParseB(string inherited)
+        {
+            while (position < tokens.Count &&
+                   (CurrentToken.Type == TokenType.Multiply || CurrentToken.Type == TokenType.Divide))
+            {
+                string opStr = CurrentToken.Value;
+                int opLine = CurrentToken.Line;
+                int opPos = CurrentToken.Position;
+                position++;
+
+                if (!CheckOperandAfterOperator(opStr, opLine, opPos))
+                    return inherited;
+
+                string fResult = ParseF();
+                inherited = tetraGenerator.AddTetra(opStr, inherited, fResult);
+
+                if (position < tokens.Count && IsStartOfFactor(CurrentToken))
+                    break;
+            }
+            return inherited;
+        }
+
+        private string ParseF()
+        {
+            if (position >= tokens.Count)
+                return "error";
+
+            if (CurrentToken.Type == TokenType.Number || CurrentToken.Type == TokenType.Identifier)
+            {
+                string value = CurrentToken.Value;
+                position++;
+                return value;
             }
 
-            if (position < tokens.Count)
+            if (CurrentToken.Type == TokenType.LParen)
             {
-                if (tokens[position].Value == ",")
+                int parenLine = CurrentToken.Line;
+                int parenPos = CurrentToken.Position;
+                position++;
+
+                if (CurrentToken.Type == TokenType.RParen)
                 {
-                    currentState = State.InParams;
+                    errors.Add(new SyntaxError
+                    {
+                        InvalidFragment = ")",
+                        Line = CurrentToken.Line,
+                        Position = CurrentToken.Position,
+                        Description = "После '(' ожидалось число, идентификатор или '('"
+                    });
+                    position++;
+                    return "error";
+                }
+
+                if (!IsStartOfFactor(CurrentToken))
+                {
+                    string fragment = CurrentToken.Value;
+                    if (string.IsNullOrEmpty(fragment))
+                        fragment = "конец строки";
+                    else if (CurrentToken.Type == TokenType.Semicolon)
+                        fragment = "';'";
+
+                    errors.Add(new SyntaxError
+                    {
+                        InvalidFragment = fragment,
+                        Line = CurrentToken.Line,
+                        Position = CurrentToken.Position,
+                        Description = "После '(' ожидалось число, идентификатор или '('"
+                    });
+
+                    if (CurrentToken.Type != TokenType.Eof && CurrentToken.Type != TokenType.Semicolon)
+                        position++;
+                }
+
+                string result = ParseE();
+
+                while (position < tokens.Count && CurrentToken.Type != TokenType.RParen && CurrentToken.Type != TokenType.Eof && CurrentToken.Type != TokenType.Semicolon)
+                {
+                    if (IsStartOfFactor(CurrentToken))
+                    {
+                        int prev = position - 1;
+                        while (prev >= 0 && tokens[prev].Type == TokenType.Error)
+                            prev--;
+
+                        if (prev >= 0 && tokens[prev].Type == TokenType.RParen)
+                        {
+                            errors.Add(new SyntaxError
+                            {
+                                InvalidFragment = CurrentToken.Value,
+                                Line = CurrentToken.Line,
+                                Position = CurrentToken.Position,
+                                Description = $"После ')' ожидался оператор"
+                            });
+                        }
+
+                        if (prev >= 0 && IsStartOfFactor(tokens[prev]) && tokens[prev].Type != TokenType.LParen)
+                        {
+                            string fragment = CurrentToken.Value;
+                            errors.Add(new SyntaxError
+                            {
+                                InvalidFragment = fragment,
+                                Line = CurrentToken.Line,
+                                Position = CurrentToken.Position,
+                                Description = $"После '{tokens[prev].Value}' ожидался оператор"
+                            });
+                        }
+
+                        result = ParseE();
+                    }
+                    else if (IsOperator(CurrentToken))
+                    {
+                        string opStr = CurrentToken.Value;
+                        int opLine = CurrentToken.Line;
+                        int opPos = CurrentToken.Position;
+                        position++;
+                        CheckOperandAfterOperator(opStr, opLine, opPos);
+                    }
+                    else
+                    {
+                        position++;
+                    }
+                }
+
+                if (CurrentToken.Type == TokenType.RParen)
+                {
                     position++;
                 }
-                else if (tokens[position].Value == ")")
+                else if (CurrentToken.Type == TokenType.Eof || CurrentToken.Type == TokenType.Semicolon)
                 {
-                    if (stack.Count > 0 && stack.Peek() == StackSymbol.Left)
+                    string fragment = CurrentToken.Type == TokenType.Eof ? "конец строки" : "';'";
+                    errors.Add(new SyntaxError
                     {
-                        stack.Pop();
+                        InvalidFragment = fragment,
+                        Line = CurrentToken.Line,
+                        Position = CurrentToken.Position,
+                        Description = "Ожидалась закрывающая скобка ')'"
+                    });
+                }
+
+                return result;
+            }
+
+            return "error";
+        }
+
+        private void ParseExpression()
+        {
+            if (position < tokens.Count && IsOperator(CurrentToken))
+            {
+                errors.Add(new SyntaxError
+                {
+                    InvalidFragment = CurrentToken.Value,
+                    Line = CurrentToken.Line,
+                    Position = CurrentToken.Position,
+                    Description = $"Неожиданный оператор '{CurrentToken.Value}' в начале выражения"
+                });
+            }
+
+            while (position < tokens.Count)
+            {
+                if (CurrentToken.Type == TokenType.Semicolon)
+                    break;
+
+                if (CurrentToken.Type == TokenType.Eof)
+                    break;
+
+                if (CurrentToken.Type == TokenType.Error)
+                {
+                    int prev = position - 1;
+                    while (prev >= 0 && tokens[prev].Type == TokenType.Error)
+                        prev--;
+
+                    if (prev >= 0 && tokens[prev].Type == TokenType.RParen)
+                    {
+                        errors.Add(new SyntaxError
+                        {
+                            InvalidFragment = CurrentToken.Value,
+                            Line = CurrentToken.Line,
+                            Position = CurrentToken.Position,
+                            Description = $"После ')' ожидался оператор"
+                        });
+                        ParseE();
+                        continue;
                     }
-                    currentState = State.ExpectSemicolon;
-                    stack.Push(StackSymbol.Right);
+
+                    if (prev >= 0 && IsStartOfFactor(tokens[prev]))
+                    {
+                        var parts = new List<string>();
+                        int errLine = CurrentToken.Line;
+                        int errPos = CurrentToken.Position;
+                        int savedPos = position;
+
+                        while (position < tokens.Count && CurrentToken.Type == TokenType.Error)
+                        {
+                            parts.Add(CurrentToken.Value);
+                            position++;
+                        }
+
+                        if (position < tokens.Count && IsStartOfFactor(CurrentToken))
+                        {
+                            position = savedPos;
+                            position++;
+                            continue;
+                        }
+
+                        if (position >= tokens.Count || CurrentToken.Type == TokenType.Eof || CurrentToken.Type == TokenType.Semicolon)
+                        {
+                            continue;
+                        }
+
+                        string fragment = string.Join(" ", parts);
+                        errors.Add(new SyntaxError
+                        {
+                            InvalidFragment = fragment,
+                            Line = errLine,
+                            Position = errPos,
+                            Description = $"После '{tokens[prev].Value}' ожидался оператор"
+                        });
+                        continue;
+                    }
+
+                    position++;
+                    continue;
+                }
+
+                if (IsStartOfFactor(CurrentToken))
+                {
+                    int startPos = position;
+
+                    if (startPos > 0)
+                    {
+                        int prev = startPos - 1;
+                        while (prev >= 0 && tokens[prev].Type == TokenType.Error)
+                            prev--;
+
+                        if (prev >= 0 && tokens[prev].Type == TokenType.RParen)
+                        {
+                            errors.Add(new SyntaxError
+                            {
+                                InvalidFragment = CurrentToken.Value,
+                                Line = CurrentToken.Line,
+                                Position = CurrentToken.Position,
+                                Description = $"После ')' ожидался оператор"
+                            });
+                            ParseE();
+                            continue;
+                        }
+
+                        if (prev >= 0 && IsStartOfFactor(tokens[prev]))
+                        {
+                            var fragmentParts = new List<string>();
+                            int firstErrorIdx = prev + 1;
+                            int errorLine = tokens[firstErrorIdx].Line;
+                            int errorPos = tokens[firstErrorIdx].Position;
+
+                            int tempPos = prev + 1;
+                            while (tempPos < position)
+                            {
+                                fragmentParts.Add(tokens[tempPos].Value);
+                                tempPos++;
+                            }
+
+                            if (CurrentToken.Type == TokenType.LParen)
+                            {
+                                string fragment = string.Join(" ", fragmentParts);
+                                if (string.IsNullOrEmpty(fragment))
+                                    fragment = "(";
+
+                                errors.Add(new SyntaxError
+                                {
+                                    InvalidFragment = fragment,
+                                    Line = errorLine,
+                                    Position = errorPos,
+                                    Description = $"После '{tokens[prev].Value}' ожидался оператор"
+                                });
+
+                                ParseE();
+                                continue;
+                            }
+
+                            fragmentParts.Add(CurrentToken.Value);
+                            string fragment2 = string.Join(" ", fragmentParts);
+
+                            errors.Add(new SyntaxError
+                            {
+                                InvalidFragment = fragment2,
+                                Line = errorLine,
+                                Position = errorPos,
+                                Description = $"После '{tokens[prev].Value}' ожидался оператор"
+                            });
+
+                            ParseE();
+                            continue;
+                        }
+                    }
+
+                    ParseE();
+                }
+                else if (IsOperator(CurrentToken))
+                {
+                    string opStr = CurrentToken.Value;
+                    int opLine = CurrentToken.Line;
+                    int opPos = CurrentToken.Position;
+                    position++;
+
+                    if (CheckOperandAfterOperator(opStr, opLine, opPos))
+                    {
+                        ParseT();
+                    }
+                }
+                else if (CurrentToken.Type == TokenType.RParen)
+                {
+                    errors.Add(new SyntaxError
+                    {
+                        InvalidFragment = CurrentToken.Value,
+                        Line = CurrentToken.Line,
+                        Position = CurrentToken.Position,
+                        Description = "Лишняя закрывающая скобка ')'"
+                    });
+                    position++;
+                }
+                else
+                {
                     position++;
                 }
             }
-            else
+        }
+
+        public bool Parse()
+        {
+            try
             {
-                currentState = State.Error;
+                tetraGenerator.Clear();
+
+                while (position < tokens.Count)
+                {
+                    if (CurrentToken.Type == TokenType.Error)
+                    {
+                        position++;
+                        continue;
+                    }
+
+                    if (CurrentToken.Type == TokenType.Eof)
+                        break;
+
+                    if (CurrentToken.Type == TokenType.Semicolon)
+                    {
+                        position++;
+                        continue;
+                    }
+
+                    ParseExpression();
+
+                    if (position < tokens.Count && CurrentToken.Type == TokenType.Semicolon)
+                    {
+                        position++;
+                    }
+                }
+
+                if (tokens.Count > 0)
+                {
+                    int lastIdx = tokens.Count - 1;
+                    while (lastIdx >= 0 && (tokens[lastIdx].Type == TokenType.Error || tokens[lastIdx].Type == TokenType.Eof || tokens[lastIdx].Type == TokenType.Semicolon))
+                        lastIdx--;
+
+                    if (lastIdx >= 0 && tokens[lastIdx].Type != TokenType.Semicolon)
+                    {
+                        bool hasSemicolon = tokens.Any(t => t.Type == TokenType.Semicolon);
+                        if (!hasSemicolon)
+                        {
+                            errors.Add(new SyntaxError
+                            {
+                                InvalidFragment = "конец строки",
+                                Line = tokens[lastIdx].Line,
+                                Position = tokens[lastIdx].Position + tokens[lastIdx].Value.Length,
+                                Description = "Ожидалась ';' в конце выражения"
+                            });
+                        }
+                    }
+                }
+
+                return errors.Count == 0;
             }
-        }
-
-        private bool IsLetter(Token token)
-        {
-            if (token.Type != "id") return false;
-            if (token.Value.Length == 0) return false;
-            char firstChar = token.Value[0];
-            return char.IsLetter(firstChar);
-        }
-
-        private bool IsNumberParamStart(Token token)
-        {
-            return IsNumber(token) || token.Value == "-";
-        }
-
-        private bool IsNumber(Token token)
-        {
-            return token.Type == "integer" || token.Type == "numeric";
-        }
-
-        private bool IsStringParamStart(Token token)
-        {
-            return token.Type == "character";
-        }
-
-        private void AddError(string fragment, int line, int position, string description)
-        {
-            errors.Add(new SyntaxError
+            catch (Exception ex)
             {
-                InvalidFragment = string.IsNullOrEmpty(fragment) ? "<конец файла>" : fragment,
-                Line = line,
-                Position = position,
-                Description = description
-            });
+                errors.Add(new SyntaxError
+                {
+                    InvalidFragment = "",
+                    Line = CurrentToken.Line,
+                    Position = CurrentToken.Position,
+                    Description = $"Ошибка разбора: {ex.Message}"
+                });
+                return false;
+            }
         }
     }
 }

@@ -4,468 +4,250 @@ using System.Text;
 
 namespace editor
 {
+    public enum TokenType
+    {
+        Number = 1,
+        Identifier = 2,
+        Plus = 3,
+        Minus = 4,
+        Multiply = 5,
+        Divide = 6,
+        LParen = 7,
+        RParen = 8,
+        Semicolon = 9,
+        Space = 10,
+        Eof = 0,
+        Error = -1
+    }
+
     public class Token
     {
-        public int Code { get; set; }
-        public string Type { get; set; }
+        public TokenType Type { get; set; }
         public string Value { get; set; }
+        public int Position { get; set; }
+        public int EndPosition { get; set; }
         public int Line { get; set; }
-        public int StartPos { get; set; }
-        public int EndPos { get; set; }
         public bool IsError { get; set; }
         public string ErrorMessage { get; set; }
 
-        public string Location => $"строка {Line}, позиция {StartPos}";
-    }
-
-    public class LexicalAnalyzer
-    {
-        private enum State
+        public Token(TokenType type, string value, int startPos, int endPos, int line)
         {
-            Start,
-            Space,
-            AssignOp,
-            Int,
-            Numeric,
-            CharStart,
-            CharContent,
-            CharComplete,
-            LeftParen,
-            RightParen,
-            Comma,
-            Minus,
-            Id,
-            End,
-            Error
+            Type = type;
+            Value = value;
+            Position = startPos;
+            EndPosition = endPos;
+            Line = line;
+            IsError = false;
+            ErrorMessage = "";
         }
 
-        private readonly HashSet<string> keywords = new() { "TRUE", "FALSE", "NULL" };
+        public string TypeName
+        {
+            get
+            {
+                switch (Type)
+                {
+                    case TokenType.Number: return "целое число";
+                    case TokenType.Identifier: return "идентификатор";
+                    case TokenType.Plus: return "оператор '+'";
+                    case TokenType.Minus: return "оператор '-'";
+                    case TokenType.Multiply: return "оператор '*'";
+                    case TokenType.Divide: return "оператор '/'";
+                    case TokenType.LParen: return "открывающая скобка";
+                    case TokenType.RParen: return "закрывающая скобка";
+                    case TokenType.Semicolon: return "конец оператора";
+                    case TokenType.Space: return "разделитель (пробел)";
+                    case TokenType.Eof: return "конец строки";
+                    case TokenType.Error: return "ошибка";
+                    default: return "неизвестно";
+                }
+            }
+        }
 
-        public List<Token> Analyze(string input)
+        public string Location => $"строка {Line}, {Position}-{EndPosition}";
+
+        public override string ToString()
+        {
+            return $"{TypeName}: '{Value}' {Location}";
+        }
+    }
+
+    public class Lexer
+    {
+        private readonly string input;
+        private int position;
+        private int line;
+        private int column;
+        private readonly List<SyntaxError> errors;
+
+        public IReadOnlyList<SyntaxError> Errors => errors;
+
+        public Lexer(string input_str)
+        {
+            input = input_str ?? "";
+            position = 0;
+            line = 1;
+            column = 1;
+            errors = new List<SyntaxError>();
+        }
+
+        public List<Token> Tokenize()
         {
             var tokens = new List<Token>();
+
             if (string.IsNullOrEmpty(input))
-                return tokens;
-
-            int line = 1;
-            int pos = 1;
-            int tokenStartLine = 1;
-            int tokenStartPos = 1;
-            State currentState = State.Start;
-            StringBuilder currentToken = new StringBuilder();
-
-            for (int i = 0; i <= input.Length; i++)
             {
-                char c = (i < input.Length) ? input[i] : '\0';
-
-                if (c == '\n')
-                {
-                    if (currentState == State.CharContent || currentState == State.CharStart)
-                    {
-                        tokens.Add(new Token
-                        {
-                            Code = -1,
-                            Type = "error",
-                            Value = currentToken.ToString(),
-                            Line = tokenStartLine,
-                            StartPos = tokenStartPos,
-                            EndPos = pos - 1,
-                            IsError = true,
-                            ErrorMessage = "Незакрытая кавычка"
-                        });
-                        currentState = State.Start;
-                        currentToken.Clear();
-                    }
-
-                    line++;
-                    pos = 1;
-                    continue;
-                }
-                if (c == '\r')
-                {
-                    pos++;
-                    continue;
-                }
-
-                switch (currentState)
-                {
-                    case State.Start:
-                        tokenStartLine = line;
-                        tokenStartPos = pos;
-
-                        if (char.IsLetter(c) && (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')))
-                        {
-                            currentState = State.Id;
-                            currentToken.Append(c);
-                        }
-                        else if (char.IsDigit(c))
-                        {
-                            currentState = State.Int;
-                            currentToken.Append(c);
-                        }
-                        else if (c == ' ')
-                        {
-                            currentState = State.Space;
-                            currentToken.Append(c);
-                        }
-                        else if (c == '<')
-                        {
-                            currentState = State.AssignOp;
-                            currentToken.Append(c);
-                        }
-                        else if (c == '(')
-                        {
-                            currentState = State.LeftParen;
-                            currentToken.Append(c);
-                        }
-                        else if (c == ')')
-                        {
-                            currentState = State.RightParen;
-                            currentToken.Append(c);
-                        }
-                        else if (c == ',')
-                        {
-                            currentState = State.Comma;
-                            currentToken.Append(c);
-                        }
-                        else if (c == '-')
-                        {
-                            currentState = State.Minus;
-                            currentToken.Append(c);
-                        }
-                        else if (c == '"')
-                        {
-                            currentState = State.CharStart;
-                            currentToken.Append(c);
-                        }
-                        else if (c == ';')
-                        {
-                            currentState = State.End;
-                            currentToken.Append(c);
-                        }
-                        else if (c == '\0')
-                        {
-                            i = input.Length;
-                        }
-                        else
-                        {
-                            tokens.Add(new Token
-                            {
-                                Code = -1,
-                                Type = "error",
-                                Value = c.ToString(),
-                                Line = line,
-                                StartPos = pos,
-                                EndPos = pos,
-                                IsError = true,
-                                ErrorMessage = $"Недопустимый символ '{c}'"
-                            });
-                        }
-                        break;
-
-                    case State.Id:
-                        if (char.IsLetterOrDigit(c) || c == '_')
-                        {
-                            currentToken.Append(c);
-                        }
-                        else
-                        {
-                            string value = currentToken.ToString();
-                            int code;
-                            string type;
-
-                            if (keywords.Contains(value))
-                            {
-                                code = value == "TRUE" ? 12 : value == "FALSE" ? 13 : 14;
-                                type = "keyword";
-                            }
-                            else
-                            {
-                                code = 1;
-                                type = "id";
-                            }
-
-                            tokens.Add(new Token
-                            {
-                                Code = code,
-                                Type = type,
-                                Value = value,
-                                Line = tokenStartLine,
-                                StartPos = tokenStartPos,
-                                EndPos = pos - 1
-                            });
-
-                            currentState = State.Start;
-                            currentToken.Clear();
-                            i--;
-                            pos--;
-                        }
-                        break;
-
-                    case State.Int:
-                        if (char.IsDigit(c))
-                        {
-                            currentToken.Append(c);
-                        }
-                        else if (c == '.')
-                        {
-                            currentToken.Append(c);
-                            currentState = State.Numeric;
-                        }
-                        else
-                        {
-                            tokens.Add(new Token
-                            {
-                                Code = 4,
-                                Type = "integer",
-                                Value = currentToken.ToString(),
-                                Line = tokenStartLine,
-                                StartPos = tokenStartPos,
-                                EndPos = pos - 1
-                            });
-
-                            currentState = State.Start;
-                            currentToken.Clear();
-                            i--;
-                            pos--;
-                        }
-                        break;
-
-                    case State.Numeric:
-                        if (char.IsDigit(c))
-                        {
-                            currentToken.Append(c);
-                        }
-                        else
-                        {
-                            tokens.Add(new Token
-                            {
-                                Code = 5,
-                                Type = "numeric",
-                                Value = currentToken.ToString(),
-                                Line = tokenStartLine,
-                                StartPos = tokenStartPos,
-                                EndPos = pos - 1
-                            });
-
-                            currentState = State.Start;
-                            currentToken.Clear();
-                            i--;
-                            pos--;
-                        }
-                        break;
-
-                    case State.Space:
-                        if (c == ' ')
-                        {
-                            currentToken.Append(c);
-                        }
-                        else
-                        {
-                            tokens.Add(new Token
-                            {
-                                Code = 2,
-                                Type = "space",
-                                Value = "(пробел)",
-                                Line = tokenStartLine,
-                                StartPos = tokenStartPos,
-                                EndPos = pos - 1
-                            });
-
-                            currentState = State.Start;
-                            currentToken.Clear();
-                            i--;
-                            pos--;
-                        }
-                        break;
-
-                    case State.AssignOp:
-                        if (c == '-')
-                        {
-                            tokens.Add(new Token
-                            {
-                                Code = 3,
-                                Type = "assign",
-                                Value = "<-",
-                                Line = tokenStartLine,
-                                StartPos = tokenStartPos,
-                                EndPos = pos
-                            });
-                            currentToken.Append(c);
-                            currentState = State.Start;
-                            currentToken.Clear();
-                        }
-                        else
-                        {
-                            //tokens.Add(new Token
-                            //{
-                            //    Code = -1,
-                            //    Type = "error",
-                            //    Value = "<",
-                            //    Line = tokenStartLine,
-                            //    StartPos = tokenStartPos,
-                            //    EndPos = tokenStartPos,
-                            //    IsError = true,
-                            //    ErrorMessage = "Ожидался символ '-' после '<'"
-                            //});
-
-                            currentState = State.Start;
-                            currentToken.Clear();
-                            i--;
-                            pos--;
-                        }
-                        break;
-
-                    case State.LeftParen:
-                        tokens.Add(new Token
-                        {
-                            Code = 7,
-                            Type = "leftparen",
-                            Value = "(",
-                            Line = tokenStartLine,
-                            StartPos = tokenStartPos,
-                            EndPos = pos - 1
-                        });
-
-                        currentState = State.Start;
-                        currentToken.Clear();
-                        i--;
-                        pos--;
-                        break;
-
-                    case State.RightParen:
-                        tokens.Add(new Token
-                        {
-                            Code = 8,
-                            Type = "rightparen",
-                            Value = ")",
-                            Line = tokenStartLine,
-                            StartPos = tokenStartPos,
-                            EndPos = pos - 1
-                        });
-
-                        currentState = State.Start;
-                        currentToken.Clear();
-                        i--;
-                        pos--;
-                        break;
-
-                    case State.Comma:
-                        tokens.Add(new Token
-                        {
-                            Code = 9,
-                            Type = "comma",
-                            Value = ",",
-                            Line = tokenStartLine,
-                            StartPos = tokenStartPos,
-                            EndPos = pos - 1
-                        });
-
-                        currentState = State.Start;
-                        currentToken.Clear();
-                        i--;
-                        pos--;
-                        break;
-
-                    case State.Minus:
-                        tokens.Add(new Token
-                        {
-                            Code = 11,
-                            Type = "minus",
-                            Value = "-",
-                            Line = tokenStartLine,
-                            StartPos = tokenStartPos,
-                            EndPos = pos - 1
-                        });
-
-                        currentState = State.Start;
-                        currentToken.Clear();
-                        i--;
-                        pos--;
-                        break;
-
-                    case State.CharStart:
-                        if (c == '"')
-                        {
-                            currentState = State.CharComplete;
-                            currentToken.Append(c);
-                        }
-                        else
-                        {
-                            currentState = State.CharContent;
-                            currentToken.Append(c);
-                        }
-                        break;
-
-                    case State.CharContent:
-                        if (c == '"')
-                        {
-                            currentState = State.CharComplete;
-                            currentToken.Append(c);
-                        }
-                        else if (c == '\0' || c == '\n')
-                        {
-                            tokens.Add(new Token
-                            {
-                                Code = -1,
-                                Type = "error",
-                                Value = currentToken.ToString(),
-                                Line = tokenStartLine,
-                                StartPos = tokenStartPos,
-                                EndPos = pos - 1,
-                                IsError = true,
-                                ErrorMessage = "Незакрытая кавычка"
-                            });
-                            currentState = State.Start;
-                            currentToken.Clear();
-                            if (c == '\n') 
-                                i--;
-                        }
-                        else
-                        {
-                            currentToken.Append(c);
-                        }
-                        break;
-
-                    case State.CharComplete:
-                        tokens.Add(new Token
-                        {
-                            Code = 6,
-                            Type = "character",
-                            Value = currentToken.ToString(),
-                            Line = tokenStartLine,
-                            StartPos = tokenStartPos,
-                            EndPos = pos - 1
-                        });
-
-                        currentState = State.Start;
-                        currentToken.Clear();
-                        i--;
-                        pos--;
-                        break;
-
-                    case State.End:
-                        tokens.Add(new Token
-                        {
-                            Code = 10,
-                            Type = "end",
-                            Value = ";",
-                            Line = tokenStartLine,
-                            StartPos = tokenStartPos,
-                            EndPos = pos - 1
-                        });
-
-                        currentState = State.Start;
-                        currentToken.Clear();
-                        i--;
-                        pos--;
-                        break;
-                }
-
-                pos++;
+                tokens.Add(new Token(TokenType.Eof, "", column, column, line));
+                return tokens;
             }
 
+            while (position < input.Length)
+            {
+                char current = input[position];
+
+                if (current == '\n')
+                {
+                    line++;
+                    column = 1;
+                    position++;
+                    continue;
+                }
+
+                if (current == '\r')
+                {
+                    position++;
+                    continue;
+                }
+
+                if (current == ' ')
+                {
+                    int start = column;
+                    position++;
+                    column++;
+
+                    while (position < input.Length && input[position] == ' ')
+                    {
+                        position++;
+                        column++;
+                    }
+
+                    tokens.Add(new Token(TokenType.Space, new string(' ', column - start), start, column - 1, line));
+                    continue;
+                }
+
+                if ((current >= 'a' && current <= 'z') || (current >= 'A' && current <= 'Z'))
+                {
+                    tokens.Add(ReadIdentifier());
+                    continue;
+                }
+
+                if (char.IsDigit(current))
+                {
+                    tokens.Add(ReadNumber());
+                    continue;
+                }
+
+                switch (current)
+                {
+                    case '+':
+                        tokens.Add(new Token(TokenType.Plus, "+", column, column, line));
+                        position++;
+                        column++;
+                        break;
+                    case '-':
+                        tokens.Add(new Token(TokenType.Minus, "-", column, column, line));
+                        position++;
+                        column++;
+                        break;
+                    case '*':
+                        tokens.Add(new Token(TokenType.Multiply, "*", column, column, line));
+                        position++;
+                        column++;
+                        break;
+                    case '/':
+                        tokens.Add(new Token(TokenType.Divide, "/", column, column, line));
+                        position++;
+                        column++;
+                        break;
+                    case '(':
+                        tokens.Add(new Token(TokenType.LParen, "(", column, column, line));
+                        position++;
+                        column++;
+                        break;
+                    case ')':
+                        tokens.Add(new Token(TokenType.RParen, ")", column, column, line));
+                        position++;
+                        column++;
+                        break;
+                    case ';':
+                        tokens.Add(new Token(TokenType.Semicolon, ";", column, column, line));
+                        position++;
+                        column++;
+                        break;
+                    default:
+                        var errorToken = new Token(TokenType.Error, current.ToString(), column, column, line)
+                        {
+                            IsError = true,
+                            ErrorMessage = $"Недопустимый символ '{current}'"
+                        };
+                        tokens.Add(errorToken);
+
+                        errors.Add(new SyntaxError
+                        {
+                            InvalidFragment = current.ToString(),
+                            Line = line,
+                            Position = column,
+                            Description = $"Недопустимый символ '{current}'"
+                        });
+
+                        position++;
+                        column++;
+                        break;
+                }
+            }
+
+            tokens.Add(new Token(TokenType.Eof, "", column, column, line));
             return tokens;
+        }
+
+        private Token ReadIdentifier()
+        {
+            int startColumn = column;
+            int startLine = line;
+            var sb = new StringBuilder();
+
+            while (position < input.Length)
+            {
+                char c = input[position];
+                if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || char.IsDigit(c) || c == '_')
+                {
+                    sb.Append(c);
+                    position++;
+                    column++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return new Token(TokenType.Identifier, sb.ToString(), startColumn, column - 1, startLine);
+        }
+
+        private Token ReadNumber()
+        {
+            int startColumn = column;
+            int startLine = line;
+            var sb = new StringBuilder();
+
+            while (position < input.Length && char.IsDigit(input[position]))
+            {
+                sb.Append(input[position]);
+                position++;
+                column++;
+            }
+
+            return new Token(TokenType.Number, sb.ToString(), startColumn, column - 1, startLine);
         }
     }
 }

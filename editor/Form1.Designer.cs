@@ -47,7 +47,15 @@
             tabPage1 = new TabPage();
             splitContainer1 = new SplitContainer();
             richTextBoxEdit = new RichTextBox();
+            tabControlResult = new TabControl();
+            tabPageErrors = new TabPage();
             dataGridView = new DataGridView();
+            tabPageResults = new TabPage();
+            tabPageLexemes = new TabPage();
+            dataGridViewLexemes = new DataGridView();
+            splitContainerResults = new SplitContainer();
+            dataGridViewTetra = new DataGridView();
+            richTextBoxPoliz = new RichTextBox();
             menuStrip1 = new MenuStrip();
             файлToolStripMenuItem = new ToolStripMenuItem();
             создатьToolStripMenuItem = new ToolStripMenuItem();
@@ -85,7 +93,15 @@
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
             splitContainer1.SuspendLayout();
+            tabControlResult.SuspendLayout();
+            tabPageErrors.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView).BeginInit();
+            tabPageResults.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainerResults).BeginInit();
+            splitContainerResults.Panel1.SuspendLayout();
+            splitContainerResults.Panel2.SuspendLayout();
+            splitContainerResults.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dataGridViewTetra).BeginInit();
             menuStrip1.SuspendLayout();
             SuspendLayout();
             // 
@@ -125,19 +141,6 @@
             tableLayoutPanel1.RowCount = 2;
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 45F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
             tableLayoutPanel1.Size = new Size(800, 537);
             tableLayoutPanel1.TabIndex = 0;
             // 
@@ -345,7 +348,7 @@
             // 
             // splitContainer1.Panel2
             // 
-            splitContainer1.Panel2.Controls.Add(dataGridView);
+            splitContainer1.Panel2.Controls.Add(tabControlResult);
             splitContainer1.Size = new Size(780, 452);
             splitContainer1.SplitterDistance = 240;
             splitContainer1.TabIndex = 0;
@@ -360,17 +363,115 @@
             richTextBoxEdit.Text = "";
             richTextBoxEdit.TextChanged += RichTextBox_TextChanged;
             // 
+            // tabControlResult
+            // 
+            tabControlResult.Controls.Add(tabPageErrors);
+            tabControlResult.Controls.Add(tabPageResults);
+            tabControlResult.Controls.Add(tabPageLexemes);
+            tabControlResult.Dock = DockStyle.Fill;
+            tabControlResult.Location = new Point(0, 0);
+            tabControlResult.Name = "tabControlResult";
+            tabControlResult.SelectedIndex = 0;
+            tabControlResult.Size = new Size(780, 208);
+            tabControlResult.TabIndex = 0;
+            // 
+            // tabPageErrors
+            // 
+            tabPageErrors.Controls.Add(dataGridView);
+            tabPageErrors.Location = new Point(4, 24);
+            tabPageErrors.Name = "tabPageErrors";
+            tabPageErrors.Padding = new Padding(3);
+            tabPageErrors.Size = new Size(772, 180);
+            tabPageErrors.TabIndex = 0;
+            tabPageErrors.Text = "Ошибки";
+            tabPageErrors.UseVisualStyleBackColor = true;
+            // 
             // dataGridView
             // 
             dataGridView.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dataGridView.Dock = DockStyle.Fill;
-            dataGridView.Location = new Point(0, 0);
+            dataGridView.Location = new Point(3, 3);
             dataGridView.Name = "dataGridView";
             dataGridView.ReadOnly = true;
             dataGridView.RowHeadersWidth = 70;
-            dataGridView.Size = new Size(780, 208);
+            dataGridView.Size = new Size(766, 174);
             dataGridView.TabIndex = 0;
             dataGridView.CellClick += ErrorGridView_CellClick;
+            // 
+            // tabPageResults
+            // 
+            tabPageResults.Controls.Add(splitContainerResults);
+            tabPageResults.Location = new Point(4, 24);
+            tabPageResults.Name = "tabPageResults";
+            tabPageResults.Padding = new Padding(3);
+            tabPageResults.Size = new Size(772, 180);
+            tabPageResults.TabIndex = 1;
+            tabPageResults.Text = "Результаты";
+            tabPageResults.UseVisualStyleBackColor = true;
+            // 
+            // tabPageLexemes
+            // 
+            tabPageLexemes.Controls.Add(this.dataGridViewLexemes);
+            tabPageLexemes.Location = new Point(4, 24);
+            tabPageLexemes.Name = "tabPageLexemes";
+            tabPageLexemes.Size = new Size(772, 180);
+            tabPageLexemes.TabIndex = 2;
+            tabPageLexemes.Text = "Лексемы";
+            tabPageLexemes.UseVisualStyleBackColor = true;
+            // 
+            // dataGridViewLexemes
+            // 
+            dataGridViewLexemes.AllowUserToAddRows = false;
+            dataGridViewLexemes.AllowUserToDeleteRows = false;
+            dataGridViewLexemes.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridViewLexemes.Dock = DockStyle.Fill;
+            dataGridViewLexemes.Location = new Point(3, 3);
+            dataGridViewLexemes.Name = "dataGridViewLexemes";
+            dataGridViewLexemes.ReadOnly = true;
+            dataGridViewLexemes.RowHeadersWidth = 51;
+            dataGridViewLexemes.Size = new Size(766, 174);
+            dataGridViewLexemes.TabIndex = 0;
+            // 
+            // splitContainerResults
+            // 
+            splitContainerResults.Dock = DockStyle.Fill;
+            splitContainerResults.Location = new Point(3, 3);
+            splitContainerResults.Name = "splitContainerResults";
+            // 
+            // splitContainerResults.Panel1
+            // 
+            splitContainerResults.Panel1.Controls.Add(dataGridViewTetra);
+            // 
+            // splitContainerResults.Panel2
+            // 
+            splitContainerResults.Panel2.Controls.Add(richTextBoxPoliz);
+            splitContainerResults.Size = new Size(766, 174);
+            splitContainerResults.SplitterDistance = 380;
+            splitContainerResults.TabIndex = 0;
+            // 
+            // dataGridViewTetra
+            // 
+            dataGridViewTetra.AllowUserToAddRows = false;
+            dataGridViewTetra.AllowUserToDeleteRows = false;
+            dataGridViewTetra.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridViewTetra.Dock = DockStyle.Fill;
+            dataGridViewTetra.Location = new Point(0, 0);
+            dataGridViewTetra.Name = "dataGridViewTetra";
+            dataGridViewTetra.ReadOnly = true;
+            dataGridViewTetra.RowHeadersWidth = 51;
+            dataGridViewTetra.Size = new Size(380, 174);
+            dataGridViewTetra.TabIndex = 0;
+            // 
+            // richTextBoxPoliz
+            // 
+            richTextBoxPoliz.Dock = DockStyle.Fill;
+            richTextBoxPoliz.Font = new Font("Consolas", 10F);
+            richTextBoxPoliz.Location = new Point(0, 0);
+            richTextBoxPoliz.Name = "richTextBoxPoliz";
+            richTextBoxPoliz.ReadOnly = true;
+            richTextBoxPoliz.Size = new Size(382, 174);
+            richTextBoxPoliz.TabIndex = 0;
+            richTextBoxPoliz.Text = "";
             // 
             // menuStrip1
             // 
@@ -596,7 +697,15 @@
             splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
             splitContainer1.ResumeLayout(false);
+            tabControlResult.ResumeLayout(false);
+            tabPageErrors.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)dataGridView).EndInit();
+            tabPageResults.ResumeLayout(false);
+            splitContainerResults.Panel1.ResumeLayout(false);
+            splitContainerResults.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splitContainerResults).EndInit();
+            splitContainerResults.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)dataGridViewTetra).EndInit();
             menuStrip1.ResumeLayout(false);
             menuStrip1.PerformLayout();
             ResumeLayout(false);
@@ -653,5 +762,13 @@
         private DataGridView dataGridView;
         private ToolStripMenuItem открытьПример1ToolStripMenuItem;
         private ToolStripMenuItem открытьПример2ToolStripMenuItem;
+        private TabControl tabControlResult;
+        private TabPage tabPageErrors;
+        private TabPage tabPageResults;
+        private SplitContainer splitContainerResults;
+        private DataGridView dataGridViewTetra;
+        private RichTextBox richTextBoxPoliz;
+        private TabPage tabPageLexemes;
+        private DataGridView dataGridViewLexemes;
     }
 }

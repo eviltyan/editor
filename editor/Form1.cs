@@ -1,8 +1,13 @@
+using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
+using System.Drawing;
+using System.IO;
+using System.Linq;
 using System.Reflection;
-using System.Security.Policy;
 using System.Text;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
+using System.Windows.Forms;
 
 namespace editor
 {
@@ -14,21 +19,25 @@ namespace editor
         private Font tabFont;
         private Dictionary<TabPage, Rectangle> closeButtons = new Dictionary<TabPage, Rectangle>();
 
-        private LexicalAnalyzer analyzer;
-        private SyntaxAutomaton syntax;
-
         public Form1()
         {
             InitializeComponent();
-
-            analyzer = new LexicalAnalyzer();
-            syntax = new SyntaxAutomaton();
 
             tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
             tabControl1.DrawItem += TabControl1_DrawItem;
             tabControl1.MouseDown += TabControl1_MouseDown;
 
             tabFont = this.Font;
+
+            ConfigureTetraGrid(dataGridViewTetra);
+
+            var firstPage = tabControl1.SelectedTab;
+            var firstSplit = (SplitContainer)firstPage.Controls[0];
+            var firstResultTab = (TabControl)firstSplit.Panel2.Controls[0];
+            var firstResultsPage = firstResultTab.TabPages[1];
+            var firstResultsSplit = (SplitContainer)firstResultsPage.Controls[0];
+            var firstTetraGrid = (DataGridView)firstResultsSplit.Panel1.Controls[0];
+            ConfigureTetraGrid(firstTetraGrid);
 
             DocumentInfo info = new DocumentInfo
             {
@@ -38,10 +47,10 @@ namespace editor
                 OriginalTabName = "Документ 1"
             };
 
-            RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
+            RichTextBox editBox = GetEditRichTextBox(firstPage);
 
             info.History.AddState(new TextState(editBox.Text, editBox.SelectionStart, editBox.SelectionLength));
-            documentInfo[tabControl1.SelectedTab] = info;
+            documentInfo[firstPage] = info;
 
             this.StartPosition = FormStartPosition.CenterScreen;
 
@@ -56,6 +65,42 @@ namespace editor
             dataGridView.Columns.Add("Description", "Описание ошибки");
             dataGridView.Columns["Description"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dataGridView.CellClick += ErrorGridView_CellClick;
+
+            dataGridViewLexemes.AllowUserToAddRows = false;
+            dataGridViewLexemes.AllowUserToDeleteRows = false;
+            dataGridViewLexemes.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridViewLexemes.ReadOnly = true;
+
+            dataGridViewLexemes.Columns.Add("Code", "Код");
+            dataGridViewLexemes.Columns["Code"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dataGridViewLexemes.Columns.Add("Type", "Тип лексемы");
+            dataGridViewLexemes.Columns["Type"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dataGridViewLexemes.Columns.Add("Lexeme", "Лексема");
+            dataGridViewLexemes.Columns["Lexeme"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dataGridViewLexemes.Columns.Add("Location", "Местоположение");
+            dataGridViewLexemes.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dataGridViewLexemes.CellClick += LexemeGridView_CellClick;
+        }
+
+        private void ConfigureTetraGrid(DataGridView grid)
+        {
+            grid.Columns.Clear();
+
+            grid.AllowUserToAddRows = false;
+            grid.AllowUserToDeleteRows = false;
+            grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            grid.ReadOnly = true;
+
+            grid.Columns.Add("Index", "№");
+            grid.Columns["Index"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            grid.Columns.Add("Op", "OP");
+            grid.Columns["Op"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            grid.Columns.Add("Arg1", "Arg1");
+            grid.Columns["Arg1"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            grid.Columns.Add("Arg2", "Arg2");
+            grid.Columns["Arg2"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            grid.Columns.Add("Result", "Result");
+            grid.Columns["Result"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
         }
 
         private void createNewDocument()
@@ -73,22 +118,67 @@ namespace editor
             richTextBoxEdit.Dock = DockStyle.Fill;
             richTextBoxEdit.AcceptsTab = true;
 
-            DataGridView dataGridView = new DataGridView();
-            dataGridView.Dock = DockStyle.Fill;
-            dataGridView.AllowUserToAddRows = false;
-            dataGridView.AllowUserToDeleteRows = false;
-            dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            TabControl resultTabs = new TabControl();
+            resultTabs.Dock = DockStyle.Fill;
 
-            dataGridView.Columns.Add("Fragment", "Неверный фрагмент");
-            dataGridView.Columns["Fragment"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            dataGridView.Columns.Add("Location", "Местоположение");
-            dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            dataGridView.Columns.Add("Description", "Описание ошибки");
-            dataGridView.Columns["Description"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            dataGridView.CellClick += ErrorGridView_CellClick;
+            TabPage errorsTab = new TabPage("Ошибки");
+            DataGridView errorsGrid = new DataGridView();
+            errorsGrid.Dock = DockStyle.Fill;
+            errorsGrid.AllowUserToAddRows = false;
+            errorsGrid.AllowUserToDeleteRows = false;
+            errorsGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            errorsGrid.Columns.Add("Fragment", "Неверный фрагмент");
+            errorsGrid.Columns["Fragment"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            errorsGrid.Columns.Add("Location", "Местоположение");
+            errorsGrid.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            errorsGrid.Columns.Add("Description", "Описание ошибки");
+            errorsGrid.Columns["Description"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            errorsGrid.CellClick += ErrorGridView_CellClick;
+            errorsTab.Controls.Add(errorsGrid);
+
+            TabPage lexemesTab = new TabPage("Лексемы");
+            DataGridView lexemesGrid = new DataGridView();
+            lexemesGrid.Dock = DockStyle.Fill;
+            lexemesGrid.AllowUserToAddRows = false;
+            lexemesGrid.AllowUserToDeleteRows = false;
+            lexemesGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            lexemesGrid.ReadOnly = true;
+            lexemesGrid.Columns.Add("Code", "Код");
+            lexemesGrid.Columns["Code"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            lexemesGrid.Columns.Add("Type", "Тип лексемы");
+            lexemesGrid.Columns["Type"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            lexemesGrid.Columns.Add("Lexeme", "Лексема");
+            lexemesGrid.Columns["Lexeme"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            lexemesGrid.Columns.Add("Location", "Местоположение");
+            lexemesGrid.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            lexemesGrid.CellClick += LexemeGridView_CellClick;
+            lexemesTab.Controls.Add(lexemesGrid);
+
+            TabPage resultsTab = new TabPage("Результаты");
+            SplitContainer resultsSplit = new SplitContainer();
+            resultsSplit.Dock = DockStyle.Fill;
+            resultsSplit.Orientation = Orientation.Vertical;
+            resultsSplit.SplitterDistance = resultsSplit.Width / 2;
+
+            DataGridView tetraGrid = new DataGridView();
+            tetraGrid.Dock = DockStyle.Fill;
+            ConfigureTetraGrid(tetraGrid);
+
+            RichTextBox polizBox = new RichTextBox();
+            polizBox.Dock = DockStyle.Fill;
+            polizBox.Font = new Font("Consolas", 10F);
+            polizBox.ReadOnly = true;
+
+            resultsSplit.Panel1.Controls.Add(tetraGrid);
+            resultsSplit.Panel2.Controls.Add(polizBox);
+            resultsTab.Controls.Add(resultsSplit);
+
+            resultTabs.TabPages.Add(errorsTab);
+            resultTabs.TabPages.Add(resultsTab);
+            resultTabs.TabPages.Add(lexemesTab);
 
             splitContainer.Panel1.Controls.Add(richTextBoxEdit);
-            splitContainer.Panel2.Controls.Add(dataGridView);
+            splitContainer.Panel2.Controls.Add(resultTabs);
             newPage.Controls.Add(splitContainer);
 
             DocumentInfo info = new DocumentInfo
@@ -106,7 +196,6 @@ namespace editor
             documentInfo[newPage] = info;
 
             tabControl1.TabPages.Add(newPage);
-
             tabControl1.SelectedTab = newPage;
 
             UpdateUndoRedoButtons();
@@ -114,8 +203,40 @@ namespace editor
 
         private RichTextBox GetEditRichTextBox(TabPage page)
         {
-            SplitContainer split = page.Controls[0] as SplitContainer;
-            return split.Panel1.Controls[0] as RichTextBox;
+            SplitContainer split = (SplitContainer)page.Controls[0];
+            return (RichTextBox)split.Panel1.Controls[0];
+        }
+
+        private DataGridView GetErrorsGrid(TabPage page)
+        {
+            SplitContainer split = (SplitContainer)page.Controls[0];
+            TabControl resultTabs = (TabControl)split.Panel2.Controls[0];
+            return (DataGridView)resultTabs.TabPages[0].Controls[0];
+        }
+
+        private DataGridView GetTetraGrid(TabPage page)
+        {
+            SplitContainer split = (SplitContainer)page.Controls[0];
+            TabControl resultTabs = (TabControl)split.Panel2.Controls[0];
+            TabPage resultsTab = resultTabs.TabPages[1];
+            SplitContainer resultsSplit = (SplitContainer)resultsTab.Controls[0];
+            return (DataGridView)resultsSplit.Panel1.Controls[0];
+        }
+
+        private RichTextBox GetPolizBox(TabPage page)
+        {
+            SplitContainer split = (SplitContainer)page.Controls[0];
+            TabControl resultTabs = (TabControl)split.Panel2.Controls[0];
+            TabPage resultsTab = resultTabs.TabPages[1];
+            SplitContainer resultsSplit = (SplitContainer)resultsTab.Controls[0];
+            return (RichTextBox)resultsSplit.Panel2.Controls[0];
+        }
+
+        private DataGridView GetLexerGrid(TabPage page)
+        {
+            SplitContainer split = (SplitContainer)page.Controls[0];
+            TabControl resultTabs = (TabControl)split.Panel2.Controls[0];
+            return (DataGridView)resultTabs.TabPages[2].Controls[0];
         }
 
         private void AddTextState(RichTextBox editBox, TabPage page)
@@ -774,99 +895,120 @@ namespace editor
 
         private void Analyze()
         {
-            RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
+            if (tabControl1.TabPages.Count == 0) return;
+
             TabPage currentPage = tabControl1.SelectedTab;
-            SplitContainer splitReadOnly = currentPage.Controls[0] as SplitContainer;
-            DataGridView dataGridView = splitReadOnly.Panel2.Controls[0] as DataGridView;
+            RichTextBox editBox = GetEditRichTextBox(currentPage);
+            DataGridView errorsGrid = GetErrorsGrid(currentPage);
+            DataGridView tetraGrid = GetTetraGrid(currentPage);
+            RichTextBox polizBox = GetPolizBox(currentPage);
+
             try
             {
-                Application.DoEvents();
-
                 string input = editBox.Text;
 
-                dataGridView.Rows.Clear();
+                errorsGrid.Rows.Clear();
+                tetraGrid.Rows.Clear();
+                polizBox.Clear();
 
-                List<SyntaxError> allErrors = new List<SyntaxError>();
+                var lexer = new Lexer(input);
+                var allTokens = lexer.Tokenize();
+                var allErrors = new List<SyntaxError>();
 
-                var tokens = analyzer.Analyze(input);
+                if (lexer.Errors != null)
+                    allErrors.AddRange(lexer.Errors);
 
-                foreach (var token in tokens)
+                DataGridView lexerGrid = GetLexerGrid(currentPage);
+                lexerGrid.Rows.Clear();
+
+                foreach (var token in allTokens.Where(t => t.Type != TokenType.Eof))
                 {
-                    if (token.IsError)
-                    {
-                        allErrors.Add(new SyntaxError
-                        {
-                            InvalidFragment = token.Value,
-                            Line = token.Line,
-                            Position = token.StartPos,
-                            Description = token.ErrorMessage
-                        });
-                    }
-                }
-
-                dynamic syntaxErrors = syntax.Parse(tokens);
-                allErrors.AddRange(syntaxErrors);
-
-                List<SyntaxError> sortedErrors = allErrors.OrderBy(e => e.Line)
-                                   .ThenBy(e => e.Position)
-                                   .ToList();
-
-                foreach (var error in sortedErrors)
-                {
-                    int rowIndex = dataGridView.Rows.Add(
-                        error.InvalidFragment,
-                        error.Location,
-                        error.Description
+                    lexerGrid.Rows.Add(
+                        (int)token.Type,
+                        token.TypeName,
+                        token.Value == " " ? "(пробел)" : token.Value,
+                        token.Location
                     );
 
-                    dataGridView.Columns["Fragment"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-                    dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-                    dataGridView.Columns["Description"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-                    dataGridView.Rows[rowIndex].DefaultCellStyle.BackColor = Color.FromArgb(255, 240, 240);
+                    if (token.IsError)
+                        lexerGrid.Rows[lexerGrid.Rows.Count - 1].DefaultCellStyle.BackColor = Color.FromArgb(255, 200, 200);
+                }
+
+                var parser = new Parser(allTokens);
+                bool parseSuccess = parser.Parse();
+
+                if (parser.Errors != null)
+                    allErrors.AddRange(parser.Errors);
+
+                if (allErrors.Count == 0 && parseSuccess)
+                {
+                    if (parser.Tetras != null)
+                    {
+                        foreach (var tetra in parser.Tetras)
+                        {
+                            tetraGrid.Rows.Add(tetra.Index, tetra.Op, tetra.Arg1, tetra.Arg2, tetra.Result);
+                        }
+                    }
+
+                    var validTokens = allTokens
+                        .Where(t => t != null && t.Type != TokenType.Eof && t.Type != TokenType.Error)
+                        .ToList();
+
+                    if (validTokens.Count > 0)
+                    {
+                        var polizCalc = new PolizCalculator(validTokens);
+                        string polizResult = polizCalc.ConvertToPoliz();
+                        double? evaluationResult = polizCalc.EvaluatePoliz();
+
+                        StringBuilder sb = new StringBuilder();
+                        sb.AppendLine($"Выражение: {input.Trim()}");
+                        sb.AppendLine($"ПОЛИЗ: {polizResult}");
+
+                        if (evaluationResult.HasValue)
+                            sb.AppendLine($"Результат вычисления: {evaluationResult.Value}");
+                        else if (polizCalc.Errors != null && polizCalc.Errors.Count > 0)
+                            sb.AppendLine($"Ошибка: {string.Join("; ", polizCalc.Errors)}");
+
+                        polizBox.Text = sb.ToString();
+                    }
+                }
+                else
+                {
+                    polizBox.Text = "Обнаружены ошибки. Генерация тетрад и ПОЛИЗ невозможна.";
+                }
+
+                var sortedErrors = allErrors.OrderBy(e => e.Line).ThenBy(e => e.Position).ToList();
+                foreach (var error in sortedErrors)
+                {
+                    int rowIndex = errorsGrid.Rows.Add(
+                        error.InvalidFragment ?? "",
+                        error.Location ?? "",
+                        error.Description ?? ""
+                    );
+                    errorsGrid.Rows[rowIndex].DefaultCellStyle.BackColor = Color.FromArgb(255, 240, 240);
                 }
 
                 int totalErrors = allErrors.Count;
-
                 DataGridViewRow countRow = new DataGridViewRow();
                 countRow.DefaultCellStyle.BackColor = totalErrors == 0 ? Color.FromArgb(220, 255, 220) : Color.FromArgb(255, 220, 220);
                 countRow.DefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Bold);
                 countRow.DefaultCellStyle.ForeColor = totalErrors == 0 ? Color.Green : Color.Red;
 
                 DataGridViewCell countCell = new DataGridViewTextBoxCell();
-                if (totalErrors == 0)
-                {
-                    countCell.Value = $"Общее количество ошибок: {totalErrors} - Синтаксических ошибок не обнаружено!";
-                }
-                else
-                {
-                    countCell.Value = $"Общее количество ошибок: {totalErrors}";
-                }
+                countCell.Value = totalErrors == 0 ? "Ошибок не обнаружено!" : $"Общее количество ошибок: {totalErrors}";
                 countRow.Cells.Add(countCell);
-
-                DataGridViewCell emptyCell3 = new DataGridViewTextBoxCell();
-                emptyCell3.Value = "";
-                countRow.Cells.Add(emptyCell3);
-
-                DataGridViewCell emptyCell4 = new DataGridViewTextBoxCell();
-                emptyCell4.Value = "";
-                countRow.Cells.Add(emptyCell4);
-
-                dataGridView.Rows.Add(countRow);
+                countRow.Cells.Add(new DataGridViewTextBoxCell());
+                countRow.Cells.Add(new DataGridViewTextBoxCell());
+                errorsGrid.Rows.Add(countRow);
 
                 if (totalErrors == 0)
-                {
-                    dataGridView.Text = "Анализ завершен. Ошибок не обнаружено!";
-                    MessageBox.Show("Анализ завершен.Ошибок не обнаружено!");
-                }
+                    MessageBox.Show("Анализ завершен. Ошибок не обнаружено!", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 else
-                {
-                    MessageBox.Show($"Анализ завершен. Найдено ошибок: {totalErrors}");
-                }
+                    MessageBox.Show($"Анализ завершен. Найдено ошибок: {totalErrors}", "Ошибки", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при анализе: {ex.Message}", "Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Ошибка при анализе: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -1017,6 +1159,30 @@ namespace editor
             }
             catch (Exception ex)
             { }
+        }
+
+        private void LexemeGridView_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            DataGridView grid = sender as DataGridView;
+            if (e.RowIndex >= 0)
+            {
+                string location = grid.Rows[e.RowIndex].Cells["Location"].Value?.ToString();
+                if (!string.IsNullOrEmpty(location))
+                {
+                    var parts = location.Replace("строка ", "").Split(',');
+                    if (parts.Length == 2)
+                    {
+                        if (int.TryParse(parts[0], out int line))
+                        {
+                            var posParts = parts[1].Trim().Split('-');
+                            if (posParts.Length >= 1 && int.TryParse(posParts[0], out int position))
+                            {
+                                NavigateToPosition(line, position);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

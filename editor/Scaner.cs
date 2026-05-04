@@ -219,7 +219,7 @@ namespace editor
             while (position < input.Length)
             {
                 char c = input[position];
-                if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || char.IsDigit(c) || c == '_')
+                if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || char.IsDigit(c) || c == '_' || c == '.')
                 {
                     sb.Append(c);
                     position++;

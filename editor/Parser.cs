@@ -12,6 +12,8 @@ namespace editor
         private readonly List<SyntaxError> errors;
         private readonly TetraGenerator tetraGenerator;
 
+        private bool insideErrorRecovery = false;
+
         public IReadOnlyList<SyntaxError> Errors => errors;
         public List<Tetra> Tetras => tetraGenerator.Tetras;
 
@@ -205,6 +207,9 @@ namespace editor
                 int parenPos = CurrentToken.Position;
                 position++;
 
+                bool hasContent = false;
+                bool isEmptyClosed = false;
+
                 if (CurrentToken.Type == TokenType.RParen)
                 {
                     errors.Add(new SyntaxError
@@ -214,28 +219,36 @@ namespace editor
                         Position = CurrentToken.Position,
                         Description = "После '(' ожидалось число, идентификатор или '('"
                     });
+                    isEmptyClosed = true;
                     position++;
                     return "error";
                 }
 
                 if (!IsStartOfFactor(CurrentToken))
                 {
-                    string fragment = CurrentToken.Value;
-                    if (string.IsNullOrEmpty(fragment))
-                        fragment = "конец строки";
-                    else if (CurrentToken.Type == TokenType.Semicolon)
-                        fragment = "';'";
-
-                    errors.Add(new SyntaxError
+                    if (!insideErrorRecovery)
                     {
-                        InvalidFragment = fragment,
-                        Line = CurrentToken.Line,
-                        Position = CurrentToken.Position,
-                        Description = "После '(' ожидалось число, идентификатор или '('"
-                    });
+                        string fragment = CurrentToken.Value;
+                        if (string.IsNullOrEmpty(fragment))
+                            fragment = "конец строки";
+                        else if (CurrentToken.Type == TokenType.Semicolon)
+                            fragment = "';'";
 
-                    if (CurrentToken.Type != TokenType.Eof && CurrentToken.Type != TokenType.Semicolon)
-                        position++;
+                        errors.Add(new SyntaxError
+                        {
+                            InvalidFragment = fragment,
+                            Line = CurrentToken.Line,
+                            Position = CurrentToken.Position,
+                            Description = "После '(' ожидалось число, идентификатор или '('"
+                        });
+
+                        if (CurrentToken.Type != TokenType.Eof && CurrentToken.Type != TokenType.Semicolon)
+                            position++;
+                    }
+                }
+                else
+                {
+                    hasContent = true;
                 }
 
                 string result = ParseE();
@@ -293,14 +306,38 @@ namespace editor
                 }
                 else if (CurrentToken.Type == TokenType.Eof || CurrentToken.Type == TokenType.Semicolon)
                 {
-                    string fragment = CurrentToken.Type == TokenType.Eof ? "конец строки" : "';'";
-                    errors.Add(new SyntaxError
+                    //string fragment = CurrentToken.Type == TokenType.Eof ? "конец строки" : "';'";
+                    //errors.Add(new SyntaxError
+                    //{
+                    //    InvalidFragment = fragment,
+                    //    Line = CurrentToken.Line,
+                    //    Position = CurrentToken.Position,
+                    //    Description = "Ожидалась закрывающая скобка ')'"
+                    //});
+
+                    //if (hasContent || (!string.IsNullOrEmpty(result) && result != "error"))
+                    //{
+                    //    string fragment = CurrentToken.Type == TokenType.Eof ? "конец строки" : "';'";
+                    //    errors.Add(new SyntaxError
+                    //    {
+                    //        InvalidFragment = fragment,
+                    //        Line = CurrentToken.Line,
+                    //        Position = CurrentToken.Position,
+                    //        Description = "Ожидалась закрывающая скобка ')'"
+                    //    });
+                    //}
+
+                    if (!isEmptyClosed && hasContent)
                     {
-                        InvalidFragment = fragment,
-                        Line = CurrentToken.Line,
-                        Position = CurrentToken.Position,
-                        Description = "Ожидалась закрывающая скобка ')'"
-                    });
+                        string fragment = CurrentToken.Type == TokenType.Eof ? "конец строки" : "';'";
+                        errors.Add(new SyntaxError
+                        {
+                            InvalidFragment = fragment,
+                            Line = CurrentToken.Line,
+                            Position = CurrentToken.Position,
+                            Description = "Ожидалась закрывающая скобка ')'"
+                        });
+                    }
                 }
 
                 return result;
@@ -440,7 +477,9 @@ namespace editor
                                     Description = $"После '{tokens[prev].Value}' ожидался оператор"
                                 });
 
+                                insideErrorRecovery = true;
                                 ParseE();
+                                insideErrorRecovery = false;
                                 continue;
                             }
 

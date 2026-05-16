@@ -251,9 +251,9 @@ LLVM эффективно оптимизирует контейнер std::array
 5. Все пункты 1-4 должны быть внедрены в GUI программы с КР/РГР (продолжение ЛР 5).  
   
 ### AST конструкции  
-![alt text](recources/images/AST.png)  
+![alt text](resources/images/AST.png)  
   
-![alt text](recources/images/AST1.png)  
+![alt text](resources/images/AST1.png)  
   
 ### Промежуточное представление IR  
 Для промежуточного представления использовались следующие виртуальные инструкции:  

@@ -9,5 +9,6 @@ namespace editor
         public RichTextBox EditBox { get; set; }
         public TextBox AstBox { get; set; }
         public DataGridView ErrorGrid { get; set; }
+        public TextBox TacBox { get; set; }
     }
 }

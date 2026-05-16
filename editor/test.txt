@@ -1,2 +1,1 @@
-﻿numbers <- NULL;
-x <- c(1, -5.4, TRUE, "hello", NULL);
+﻿x <- c(1, -5.4, TRUE, "hello", NULL);

@@ -51,7 +51,10 @@
             rightPanel = new Panel();
             astTextBox = new TextBox();
             rightLabel = new Label();
-            errorPanel = new Panel();
+            tabControlResult = new TabControl();
+            tabPageErrors = new TabPage();
+            tabPageResults = new TabPage();
+            tacTextBox = new TextBox();
             dataGridView = new DataGridView();
             errorLabel = new Label();
             infoButton = new Button();
@@ -101,7 +104,6 @@
             editorSplitContainer.SuspendLayout();
             leftPanel.SuspendLayout();
             rightPanel.SuspendLayout();
-            errorPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView).BeginInit();
             menuStrip1.SuspendLayout();
             SuspendLayout();
@@ -325,7 +327,7 @@
             // 
             // mainSplitContainer.Panel2
             // 
-            mainSplitContainer.Panel2.Controls.Add(errorPanel);
+            mainSplitContainer.Panel2.Controls.Add(tabControlResult);
             mainSplitContainer.Size = new Size(880, 515);
             mainSplitContainer.SplitterDistance = 360;
             mainSplitContainer.TabIndex = 0;
@@ -417,15 +419,30 @@
             rightLabel.TabIndex = 1;
             rightLabel.Text = "AST (Абстрактное синтаксическое дерево)";
             // 
-            // errorPanel
+            // tabControlResult
             // 
-            errorPanel.Controls.Add(dataGridView);
-            errorPanel.Controls.Add(errorLabel);
-            errorPanel.Dock = DockStyle.Fill;
-            errorPanel.Location = new Point(0, 0);
-            errorPanel.Name = "errorPanel";
-            errorPanel.Size = new Size(880, 151);
-            errorPanel.TabIndex = 0;
+            tabControlResult.Dock = DockStyle.Fill;
+            tabControlResult.Controls.Add(tabPageErrors);
+            tabControlResult.Controls.Add(tabPageResults);
+            // 
+            // tabPageErrors
+            // 
+            tabPageErrors.Text = "Ошибки";
+            tabPageErrors.Controls.Add(dataGridView);
+            // 
+            // tabPageResults
+            // 
+            tabPageResults.Text = "Результаты IR";
+            tabPageResults.Controls.Add(tacTextBox);
+            // 
+            // tacTextBox
+            // 
+            tacTextBox.Dock = DockStyle.Fill;
+            tacTextBox.Multiline = true;
+            tacTextBox.ReadOnly = true;
+            tacTextBox.Font = new Font("Consolas", 10F);
+            tacTextBox.ScrollBars = ScrollBars.Both;
+            tacTextBox.BackColor = Color.FromArgb(250, 250, 250);
             // 
             // dataGridView
             // 
@@ -741,7 +758,6 @@
             leftPanel.ResumeLayout(false);
             rightPanel.ResumeLayout(false);
             rightPanel.PerformLayout();
-            errorPanel.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)dataGridView).EndInit();
             menuStrip1.ResumeLayout(false);
             menuStrip1.PerformLayout();
@@ -801,9 +817,12 @@
         private Panel rightPanel;
         private Label rightLabel;
         private TextBox astTextBox;
-        private Panel errorPanel;
-        private Label errorLabel;
+        private TabControl tabControlResult;
+        private TabPage tabPageErrors;
+        private TabPage tabPageResults;
         private DataGridView dataGridView;
+        private TextBox tacTextBox;
+        private Label errorLabel;
         private ToolStripMenuItem открытьПример1ToolStripMenuItem;
         private ToolStripMenuItem открытьПример2ToolStripMenuItem;
         private Button paintButton;

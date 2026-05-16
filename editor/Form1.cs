@@ -37,7 +37,8 @@ namespace editor
             {
                 EditBox = richTextBoxEdit,
                 AstBox = astTextBox,
-                ErrorGrid = dataGridView
+                ErrorGrid = dataGridView,
+                TacBox = tacTextBox,
             };
             tabPage1.Tag = controls;
 
@@ -90,15 +91,6 @@ namespace editor
             editBox.AcceptsTab = true;
             editBox.Font = new Font("Consolas", 11);
 
-            TextBox astBox = new TextBox();
-            astBox.Dock = DockStyle.Fill;
-            astBox.Multiline = true;
-            astBox.ScrollBars = ScrollBars.Both;
-            astBox.Font = new Font("Consolas", 10);
-            astBox.WordWrap = false;
-            astBox.ReadOnly = true;
-            astBox.BackColor = Color.FromArgb(250, 250, 250);
-
             Panel leftPanel = new Panel();
             leftPanel.Dock = DockStyle.Fill;
             Label leftLabel = new Label();
@@ -109,6 +101,15 @@ namespace editor
             leftLabel.Font = new Font("Segoe UI", 9, FontStyle.Bold);
             leftPanel.Controls.Add(editBox);
             leftPanel.Controls.Add(leftLabel);
+
+            TextBox astBox = new TextBox();
+            astBox.Dock = DockStyle.Fill;
+            astBox.Multiline = true;
+            astBox.ScrollBars = ScrollBars.Both;
+            astBox.Font = new Font("Consolas", 10);
+            astBox.WordWrap = false;
+            astBox.ReadOnly = true;
+            astBox.BackColor = Color.FromArgb(250, 250, 250);
 
             Panel rightPanel = new Panel();
             rightPanel.Dock = DockStyle.Fill;
@@ -124,21 +125,19 @@ namespace editor
             editorSplit.Panel1.Controls.Add(leftPanel);
             editorSplit.Panel2.Controls.Add(rightPanel);
 
-            Panel errorPanel = new Panel();
-            errorPanel.Dock = DockStyle.Fill;
+            TabControl tabControlResult = new TabControl();
+            tabControlResult.Dock = DockStyle.Fill;
 
-            Label errorLabel = new Label();
-            errorLabel.Text = "Ошибки";
-            errorLabel.Dock = DockStyle.Top;
-            errorLabel.BackColor = Color.FromArgb(240, 240, 240);
-            errorLabel.Padding = new Padding(5);
-            errorLabel.Font = new Font("Segoe UI", 9, FontStyle.Bold);
+            TabPage tabPageErrors = new TabPage();
+            tabPageErrors.Text = "Ошибки";
 
             DataGridView dataGridView = new DataGridView();
             dataGridView.Dock = DockStyle.Fill;
             dataGridView.AllowUserToAddRows = false;
             dataGridView.AllowUserToDeleteRows = false;
             dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridView.ReadOnly = true;
+            dataGridView.RowHeadersWidth = 70;
 
             dataGridView.Columns.Add("Fragment", "Неверный фрагмент");
             dataGridView.Columns["Fragment"].Width = 250;
@@ -149,18 +148,35 @@ namespace editor
             dataGridView.Columns["Description"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dataGridView.CellClick += ErrorGridView_CellClick;
 
-            errorPanel.Controls.Add(dataGridView);
-            errorPanel.Controls.Add(errorLabel);
+            tabPageErrors.Controls.Add(dataGridView);
+
+            TabPage tabPageResults = new TabPage();
+            tabPageResults.Text = "Результаты IR";
+
+            TextBox tacTextBox = new TextBox();
+            tacTextBox.Dock = DockStyle.Fill;
+            tacTextBox.Multiline = true;
+            tacTextBox.ReadOnly = true;
+            tacTextBox.Font = new Font("Consolas", 10F);
+            tacTextBox.ScrollBars = ScrollBars.Both;
+            tacTextBox.BackColor = Color.FromArgb(250, 250, 250);
+
+            tabPageResults.Controls.Add(tacTextBox);
+
+            tabControlResult.Controls.Add(tabPageErrors);
+            tabControlResult.Controls.Add(tabPageResults);
 
             mainSplit.Panel1.Controls.Add(editorSplit);
-            mainSplit.Panel2.Controls.Add(errorPanel);
+            mainSplit.Panel2.Controls.Add(tabControlResult);
+
             newPage.Controls.Add(mainSplit);
 
             newPage.Tag = new PageControls
             {
                 EditBox = editBox,
                 AstBox = astBox,
-                ErrorGrid = dataGridView
+                ErrorGrid = dataGridView,
+                TacBox = tacTextBox
             };
 
             DocumentInfo info = new DocumentInfo
@@ -185,6 +201,12 @@ namespace editor
         {
             var controls = page.Tag as PageControls;
             return controls?.EditBox;
+        }
+
+        private TextBox GetTacTextBox(TabPage page)
+        {
+            var controls = page.Tag as PageControls;
+            return controls?.TacBox;
         }
 
         private void AddTextState(RichTextBox editBox, TabPage page)
@@ -861,6 +883,7 @@ namespace editor
             RichTextBox editBox = GetEditRichTextBox(currentPage);
             DataGridView dataGridView = GetErrorGridView(currentPage);
             TextBox astTextBox = GetAstTextBox(currentPage);
+            TextBox tacBox = GetTacTextBox(currentPage);
 
             if (editBox == null || dataGridView == null || astTextBox == null) return;
 
@@ -968,6 +991,19 @@ namespace editor
                     astTextBox.Text = "AST не построено из-за ошибок.";
                 }
                 isJson = false;
+
+                if (totalErrors == 0 && astNodes.Count > 0)
+                {
+                    if (tacBox != null)
+                    {
+                        RunFullOptimization(tacBox);
+                    }
+                }
+                else
+                {
+                    if (tacBox != null)
+                        tacBox.Text = "IR не сгенерирован из-за ошибок.";
+                }
 
                 if (totalErrors == 0)
                 {
@@ -1140,32 +1176,6 @@ namespace editor
 
         private void paintButton_Click(object sender, EventArgs e)
         {
-            //if (lastAstNodes == null || lastAstNodes.Count == 0)
-            //{
-            //    MessageBox.Show("Нет построенного AST. Сначала выполните анализ (Пуск).",
-            //        "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            //    return;
-            //}
-
-            //AstVisualizerForm visualizer = new AstVisualizerForm(lastAstNodes);
-            //visualizer.Show();
-
-            //if (visualizer != null && !visualizer.IsDisposed)
-            //{
-            //    if (visualizer.WindowState == FormWindowState.Minimized)
-            //        visualizer.WindowState = FormWindowState.Normal;
-
-            //    visualizer.BringToFront();
-            //    visualizer.Activate();
-
-            //    visualizer.UpdateAst(lastAstNodes);
-            //}
-            //else
-            //{
-            //    visualizer = new AstVisualizerForm(lastAstNodes);
-            //    visualizer.FormClosed += (s, args) => visualizer = null;
-            //    visualizer.Show(this);
-            //}
             if (lastAstNodes == null || lastAstNodes.Count == 0)
             {
                 MessageBox.Show("Нет построенного AST. Сначала выполните анализ (Пуск).",
@@ -1239,6 +1249,484 @@ namespace editor
                 }
                 isJson = false;
             }
+        }
+
+        private bool IsNullAssignment(VectorDeclNode node)
+        {
+            if (node.IsNull)
+                return true;
+
+            if (node.Initializer is NullLiteralNode)
+                return true;
+
+            return false;
+        }
+
+        private bool IsCWithNullOnly(VectorDeclNode node)
+        {
+            if (node.Initializer is FuncCallNode funcCall &&
+                funcCall.FunctionName == "c" &&
+                funcCall.Arguments.Count == 1 &&
+                funcCall.Arguments[0] is NullLiteralNode)
+                return true;
+
+            return false;
+        }
+
+        private string GetConstType(AstNode arg)
+        {
+            switch (arg)
+            {
+                case NumberLiteralNode num:
+                    return num.Type == "integer" ? "int" : "num";
+                case LogicalLiteralNode:
+                    return "log";
+                case CharacterLiteralNode:
+                    return "chr";
+                case NullLiteralNode:
+                    return "null";
+                default:
+                    return "unknown";
+            }
+        }
+
+        private string GetConstValue(AstNode arg)
+        {
+            switch (arg)
+            {
+                case NumberLiteralNode num:
+                    return num.Value;
+                case LogicalLiteralNode logical:
+                    return logical.Value ? "TRUE" : "FALSE";
+                case CharacterLiteralNode character:
+                    return character.Value;
+                case NullLiteralNode:
+                    return "NULL";
+                default:
+                    return "?";
+            }
+        }
+
+        private string GetCoercedValueForType(AstNode arg, string targetType)
+        {
+            if (targetType == "chr")
+            {
+                switch (arg)
+                {
+                    case NumberLiteralNode num:
+                        return $"\"{num.Value}\"";
+                    case LogicalLiteralNode logical:
+                        return $"\"{logical.Value.ToString().ToUpper()}\"";
+                    case CharacterLiteralNode character:
+                        return $"\"{character.Value}\"";
+                    case NullLiteralNode:
+                        return "NULL";
+                    default:
+                        return "?";
+                }
+            }
+            else if (targetType == "num")
+            {
+                switch (arg)
+                {
+                    case NumberLiteralNode num:
+                        return num.Value;
+                    case LogicalLiteralNode logical:
+                        return logical.Value ? "1.0" : "0.0";
+                    default:
+                        return GetConstValue(arg);
+                }
+            }
+            else if (targetType == "int")
+            {
+                switch (arg)
+                {
+                    case NumberLiteralNode num:
+                        return num.Value;
+                    case LogicalLiteralNode logical:
+                        return logical.Value ? "1" : "0";
+                    default:
+                        return GetConstValue(arg);
+                }
+            }
+            return GetConstValue(arg);
+        }
+
+        private string GetTargetTypeForCoercion(List<AstNode> args)
+        {
+            var priority = new Dictionary<string, int>
+            {
+                {"null", 0},
+                {"log", 1},
+                {"int", 2},
+                {"num", 3},
+                {"chr", 4}
+            };
+
+            string maxType = "null";
+            int maxPriority = 0;
+
+            foreach (var arg in args)
+            {
+                string type = GetConstType(arg);
+                if (priority.ContainsKey(type) && priority[type] > maxPriority)
+                {
+                    maxPriority = priority[type];
+                    maxType = type;
+                }
+            }
+
+            return maxType;
+        }
+
+        private string GenerateOriginalIR(List<VectorDeclNode> astNodes)
+        {
+            if (astNodes == null || astNodes.Count == 0)
+                return "IR не сгенерирован: AST пуст.";
+
+            StringBuilder sb = new StringBuilder();
+
+            foreach (var node in astNodes)
+            {
+                if (IsCWithNullOnly(node))
+                {
+                    sb.AppendLine("; --------------------------------------------------");
+                    sb.AppendLine($"; ИСХОДНЫЙ IR (ДО ОПТИМИЗАЦИЙ)");
+                    sb.AppendLine($"; {node.Name} <- c(NULL)");
+                    sb.AppendLine("; --------------------------------------------------");
+                    sb.AppendLine();
+                    sb.AppendLine("; Константы");
+                    sb.AppendLine($"t1 = CONST null, NULL");
+                    sb.AppendLine();
+                    sb.AppendLine("; Список аргументов");
+                    sb.AppendLine($"args = LIST 1");
+                    sb.AppendLine($"ADD_ARG args, t1");
+                    sb.AppendLine();
+                    sb.AppendLine("; Вызов функции");
+                    sb.AppendLine($"res = CALL c, args");
+                    sb.AppendLine();
+                    sb.AppendLine($"{node.Name} = res");
+                    sb.AppendLine();
+                    sb.AppendLine("; Очистка временных объектов");
+                    sb.AppendLine($"FREE args, t1");
+                    sb.AppendLine();
+                    continue;
+                }
+
+                if (IsNullAssignment(node))
+                {
+                    sb.AppendLine("; --------------------------------------------------");
+                    sb.AppendLine($"; ИСХОДНЫЙ IR (ДО ОПТИМИЗАЦИЙ)");
+                    sb.AppendLine($"; {node.Name} <- NULL");
+                    sb.AppendLine("; --------------------------------------------------");
+                    sb.AppendLine();
+                    sb.AppendLine("; Константы");
+                    sb.AppendLine($"t1 = CONST null, NULL");
+                    sb.AppendLine();
+                    sb.AppendLine("; Присваивание");
+                    sb.AppendLine($"{node.Name} = t1");
+                    sb.AppendLine();
+                    sb.AppendLine("; Очистка временных объектов");
+                    sb.AppendLine($"FREE t1");
+                    sb.AppendLine();
+                    continue;
+                }
+
+                if (node.Initializer is FuncCallNode funcCall && funcCall.FunctionName == "c")
+                {
+                    var args = funcCall.Arguments;
+
+                    sb.AppendLine("; --------------------------------------------------");
+                    sb.AppendLine($"; ИСХОДНЫЙ IR (ДО ОПТИМИЗАЦИЙ)");
+                    sb.AppendLine($"; {node.Name} <- c({string.Join(", ", args.Select(a => GetConstValue(a)))})");
+                    sb.AppendLine("; --------------------------------------------------");
+                    sb.AppendLine();
+
+                    sb.AppendLine("; Константы");
+                    for (int i = 0; i < args.Count; i++)
+                    {
+                        string type = GetConstType(args[i]);
+                        string value = GetConstValue(args[i]);
+                        sb.AppendLine($"t{i + 1} = CONST {type}, {value}");
+                    }
+                    sb.AppendLine();
+
+                    sb.AppendLine("; Список аргументов");
+                    sb.AppendLine($"args = LIST {args.Count}");
+                    for (int i = 0; i < args.Count; i++)
+                    {
+                        sb.AppendLine($"ADD_ARG args, t{i + 1}");
+                    }
+                    sb.AppendLine();
+
+                    sb.AppendLine("; Вызов функции");
+                    sb.AppendLine($"res = CALL c, args");
+                    sb.AppendLine();
+
+                    sb.AppendLine("; Присваивание");
+                    sb.AppendLine($"{node.Name} = res");
+                    sb.AppendLine();
+
+                    sb.AppendLine("; Очистка временных объектов");
+                    sb.AppendLine($"FREE args");
+                    sb.AppendLine($"FREE {string.Join(", ", Enumerable.Range(1, args.Count).Select(i => $"t{i}"))}");
+                    sb.AppendLine();
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private string GenerateOptimization1_RemoveNull(List<VectorDeclNode> astNodes)
+        {
+            if (astNodes == null || astNodes.Count == 0)
+                return "IR не сгенерирован: AST пуст.";
+
+            StringBuilder sb = new StringBuilder();
+
+            foreach (var node in astNodes)
+            {
+                if (IsCWithNullOnly(node))
+                {
+                    sb.AppendLine("; --------------------------------------------------");
+                    sb.AppendLine($"; ОПТИМИЗАЦИЯ 1: Удаление NULL");
+                    sb.AppendLine($"; {node.Name} <- c() (все аргументы были NULL)");
+                    sb.AppendLine("; --------------------------------------------------");
+                    sb.AppendLine();
+                    sb.AppendLine("; Список аргументов пуст!");
+                    sb.AppendLine("; c() без аргументов возвращает NULL");
+                    sb.AppendLine($"args = LIST 0");
+                    sb.AppendLine();
+                    sb.AppendLine("; Вызов функции");
+                    sb.AppendLine($"res = CALL c, args");
+                    sb.AppendLine($"{node.Name} = res");
+                    sb.AppendLine($"FREE args");
+                    sb.AppendLine();
+                    continue;
+                }
+
+                if (IsNullAssignment(node))
+                {
+                    sb.AppendLine("; --------------------------------------------------");
+                    sb.AppendLine($"; ОПТИМИЗАЦИЯ 1: Удаление NULL (не применима к прямому NULL)");
+                    sb.AppendLine($"; {node.Name} <- NULL");
+                    sb.AppendLine("; --------------------------------------------------");
+                    sb.AppendLine();
+                    sb.AppendLine("; Константы");
+                    sb.AppendLine($"t1 = CONST null, NULL");
+                    sb.AppendLine();
+                    sb.AppendLine("; Присваивание");
+                    sb.AppendLine($"{node.Name} = t1");
+                    sb.AppendLine();
+                    sb.AppendLine("; Очистка временных объектов");
+                    sb.AppendLine($"FREE t1");
+                    sb.AppendLine();
+                    continue;
+                }
+
+                if (node.Initializer is FuncCallNode funcCall && funcCall.FunctionName == "c")
+                {
+                    var nonNullArgs = funcCall.Arguments.Where(a => !(a is NullLiteralNode)).ToList();
+
+                    if (nonNullArgs.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    sb.AppendLine("; --------------------------------------------------");
+                    sb.AppendLine($"; ОПТИМИЗАЦИЯ 1: Удаление NULL");
+                    sb.AppendLine($"; {node.Name} <- c({string.Join(", ", nonNullArgs.Select(a => GetConstValue(a)))})");
+                    sb.AppendLine("; --------------------------------------------------");
+                    sb.AppendLine();
+
+                    sb.AppendLine("; Константы");
+                    for (int i = 0; i < nonNullArgs.Count; i++)
+                    {
+                        string type = GetConstType(nonNullArgs[i]);
+                        string value = GetConstValue(nonNullArgs[i]);
+                        sb.AppendLine($"t{i + 1} = CONST {type}, {value}");
+                    }
+                    sb.AppendLine();
+
+                    sb.AppendLine("; Список аргументов");
+                    sb.AppendLine($"args = LIST {nonNullArgs.Count}");
+                    for (int i = 0; i < nonNullArgs.Count; i++)
+                    {
+                        sb.AppendLine($"ADD_ARG args, t{i + 1}");
+                    }
+                    sb.AppendLine();
+
+                    sb.AppendLine("; Вызов функции c()");
+                    sb.AppendLine($"res = CALL c, args");
+                    sb.AppendLine();
+
+                    sb.AppendLine($"{node.Name} = res");
+                    sb.AppendLine();
+
+                    sb.AppendLine("; Очистка временных объектов");
+                    sb.AppendLine($"FREE args");
+                    sb.AppendLine($"FREE {string.Join(", ", Enumerable.Range(1, nonNullArgs.Count).Select(i => $"t{i}"))}");
+                    sb.AppendLine();
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private string GenerateOptimization2_Coercion(List<VectorDeclNode> astNodes)
+        {
+            if (astNodes == null || astNodes.Count == 0)
+                return "IR не сгенерирован: AST пуст.";
+
+            StringBuilder sb = new StringBuilder();
+
+            foreach (var node in astNodes)
+            {
+                if (IsCWithNullOnly(node) || IsNullAssignment(node))
+                {
+                    sb.AppendLine("; --------------------------------------------------");
+                    sb.AppendLine($"; ОПТИМИЗАЦИЯ 2: Упрощение константы");
+                    sb.AppendLine($"; {node.Name} <- c(NULL)");
+                    sb.AppendLine("; --------------------------------------------------");
+                    sb.AppendLine();
+                    sb.AppendLine("; Упрощаем до прямого присваивания");
+                    sb.AppendLine();
+                    sb.AppendLine($"{node.Name} = NULL");
+                    sb.AppendLine();
+                    continue;
+                }
+
+                if (node.Initializer is FuncCallNode funcCall && funcCall.FunctionName == "c")
+                {
+                    var nonNullArgs = funcCall.Arguments.Where(a => !(a is NullLiteralNode)).ToList();
+
+                    if (nonNullArgs.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    string targetType = GetTargetTypeForCoercion(nonNullArgs);
+
+                    sb.AppendLine("; --------------------------------------------------");
+                    sb.AppendLine($"; ОПТИМИЗАЦИЯ 2: Приведение к общему типу");
+                    sb.AppendLine($"; {node.Name} <- c({string.Join(", ", nonNullArgs.Select(a => GetConstValue(a)))})");
+                    sb.AppendLine($"; Целевой тип: {targetType}");
+                    sb.AppendLine("; --------------------------------------------------");
+                    sb.AppendLine();
+
+                    sb.AppendLine("; Все константы приведены к одному типу");
+                    for (int i = 0; i < nonNullArgs.Count; i++)
+                    {
+                        string value = GetCoercedValueForType(nonNullArgs[i], targetType);
+                        sb.AppendLine($"t{i + 1} = CONST {targetType}, {value}");
+                    }
+                    sb.AppendLine();
+
+                    sb.AppendLine("; Прямое создание вектора (без вызова c())");
+                    sb.AppendLine($"vec = VECTOR {targetType}, {nonNullArgs.Count}");
+                    for (int i = 0; i < nonNullArgs.Count; i++)
+                    {
+                        sb.AppendLine($"SET_ELT vec, {i}, t{i + 1}");
+                    }
+                    sb.AppendLine();
+
+                    sb.AppendLine($"{node.Name} = vec");
+                    sb.AppendLine();
+
+                    sb.AppendLine("; Очистка временных объектов");
+                    sb.AppendLine($"FREE {string.Join(", ", Enumerable.Range(1, nonNullArgs.Count).Select(i => $"t{i}"))}");
+                    sb.AppendLine();
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private string CountInstructions(string irCode)
+        {
+            if (string.IsNullOrEmpty(irCode))
+                return "Нет данных";
+
+            int constCount = 0;
+            int listCount = 0;
+            int addArgCount = 0;
+            int callCount = 0;
+            int assignCount = 0;
+            int freeCount = 0;
+            int vectorCount = 0;
+            int setEltCount = 0;
+
+            var lines = irCode.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+
+            foreach (var line in lines)
+            {
+                if (line.Trim().StartsWith(";")) continue;
+
+                if (line.Contains("= CONST"))
+                    constCount++;
+                else if (line.Contains("= LIST"))
+                    listCount++;
+                else if (line.Contains("ADD_ARG"))
+                    addArgCount++;
+                else if (line.Contains("= CALL"))
+                    callCount++;
+                else if (line.Contains("= VECTOR"))
+                    vectorCount++;
+                else if (line.Contains("SET_ELT"))
+                    setEltCount++;
+                else if (line.Contains("= NULL") || (line.Contains("=") && !line.Contains("CONST") && !line.Contains("CALL") && !line.Contains("VECTOR")))
+                    assignCount++;
+                else if (line.Contains("FREE"))
+                    freeCount++;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("----------------------------------------------------");
+            sb.AppendLine("СТАТИСТИКА ИНСТРУКЦИЙ:");
+            sb.AppendLine($"CONST (константы):      {constCount}");
+            sb.AppendLine($"LIST (список):          {listCount}");
+            sb.AppendLine($"ADD_ARG (добавление):   {addArgCount}");
+            sb.AppendLine($"CALL (вызов):           {callCount}");
+            sb.AppendLine($"VECTOR (создание):      {vectorCount}");
+            sb.AppendLine($"SET_ELT (установка):    {setEltCount}");
+            sb.AppendLine($"ASSIGN (присваивание):  {assignCount}");
+            sb.AppendLine($"FREE (освобождение):    {freeCount}");
+            sb.AppendLine("----------------------------------------------------");
+            sb.AppendLine($"ВСЕГО:                  {constCount + listCount + addArgCount + callCount + vectorCount + setEltCount + assignCount + freeCount}");
+            sb.AppendLine("----------------------------------------------------");
+
+            return sb.ToString();
+        }
+
+        private void RunFullOptimization(TextBox outputBox)
+        {
+            if (lastAstNodes == null || lastAstNodes.Count == 0)
+            {
+                outputBox.Text = "Нет AST. Сначала выполните анализ (Пуск).";
+                return;
+            }
+
+            StringBuilder result = new StringBuilder();
+
+            string originalIR = GenerateOriginalIR(lastAstNodes);
+            result.AppendLine(originalIR);
+            result.AppendLine(CountInstructions(originalIR));
+            result.AppendLine();
+            result.AppendLine(new string('=', 60));
+            result.AppendLine();
+
+            string opt1IR = GenerateOptimization1_RemoveNull(lastAstNodes);
+            result.AppendLine(opt1IR);
+            result.AppendLine(CountInstructions(opt1IR));
+            result.AppendLine();
+            result.AppendLine(new string('=', 60));
+            result.AppendLine();
+
+            string opt2IR = GenerateOptimization2_Coercion(lastAstNodes);
+            result.AppendLine(opt2IR);
+            result.AppendLine(CountInstructions(opt2IR));
+
+            outputBox.Text = result.ToString();
         }
     }
 }

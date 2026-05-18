@@ -64,7 +64,6 @@ namespace editor
                 { "about", "О программе" },
                 
                 { "windowTitle", "Компилятор - Редактор кода" },
-                { "windowTitleEn", "Compiler - Code Editor" },
                 
                 { "errorColumn", "Неверный фрагмент" },
                 { "locationColumn", "Местоположение" },
@@ -73,16 +72,12 @@ namespace editor
                 { "analysisComplete", "Анализ завершен. Ошибок не обнаружено!" },
                 { "errorsFound", "Анализ завершен. Найдено ошибок: {0}" },
                 { "totalErrors", "Общее количество ошибок: {0}" },
-                { "noErrors", "Синтаксических ошибок не обнаружено!" },
                 { "noTextSelected", "Нет выделенного текста для копирования!" },
                 { "clipboardEmpty", "Буфер обмена пуст или содержит не текст!" },
                 { "saveChanges", "Сохранить изменения в документе '{0}'?" },
                 { "unsavedChanges", "Несохраненные изменения" },
                 { "saveBeforeExit", "Документ '{0}' имеет несохраненные изменения.\nСохранить перед выходом?" },
-                { "cancelAllChanges", "Отменить все изменения? Это действие нельзя будет отменить." },
-                { "analysisError", "Ошибка при анализе: {0}" },
                 { "saveError", "Ошибка при сохранении: {0}" },
-                { "openError", "Ошибка при открытии: {0}" },
                 { "totalErrorsZero", "Общее количество ошибок: 0 - Синтаксических ошибок не обнаружено!" },
                 { "totalErrorsCount", "Общее количество ошибок: {0}" },
 
@@ -130,6 +125,12 @@ namespace editor
                 { "tokenType_end", "Конец оператора" },
                 { "tokenType_space", "Пробел" },
                 { "spaceDisplay", "(пробел)" },
+
+                { "error", "Ошибка" },
+                { "errorNoEditor", "Не удалось получить редактор текста" },
+                { "openErrorWithFile", "Ошибка при открытии файла '{0}': {1}" },
+                { "openFileTitle", "Открыть файл" },
+
             };
 
             var en = new Dictionary<string, string>
@@ -174,7 +175,6 @@ namespace editor
                 { "about", "About" },
                 
                 { "windowTitle", "Compiler - Code Editor" },
-                { "windowTitleEn", "Compiler - Code Editor" },
                 
                 { "errorColumn", "Invalid Fragment" },
                 { "locationColumn", "Location" },
@@ -183,16 +183,12 @@ namespace editor
                 { "analysisComplete", "Analysis complete. No errors found!" },
                 { "errorsFound", "Analysis complete. Errors found: {0}" },
                 { "totalErrors", "Total errors: {0}" },
-                { "noErrors", "No syntax errors found!" },
                 { "noTextSelected", "No text selected to copy!" },
                 { "clipboardEmpty", "Clipboard is empty or does not contain text!" },
                 { "saveChanges", "Save changes to document '{0}'?" },
                 { "unsavedChanges", "Unsaved changes" },
                 { "saveBeforeExit", "Document '{0}' has unsaved changes.\nSave before exit?" },
-                { "cancelAllChanges", "Undo all changes? This action cannot be undone." },
-                { "analysisError", "Analysis error: {0}" },
                 { "saveError", "Save error: {0}" },
-                { "openError", "Open error: {0}" },
                 { "totalErrorsZero", "Total errors: 0 - No syntax errors found!" },
                 { "totalErrorsCount", "Total errors: {0}" },
 
@@ -240,6 +236,11 @@ namespace editor
                 { "tokenType_end", "End of statement" },
                 { "tokenType_space", "Space" },
                 { "spaceDisplay", "(space)" },
+
+                { "error", "Error" },
+                { "errorNoEditor", "Failed to get text editor" },
+                { "openErrorWithFile", "Error opening file '{0}': {1}" },
+                { "openFileTitle", "Open file" },
             };
 
             strings["ru"] = ru;
@@ -372,32 +373,10 @@ namespace editor
 
         public static string CurrentLanguage => currentLanguage;
 
-        public static DialogResult ShowMessageBox(string text, string caption, MessageBoxButtons buttons)
-        {
-            string translatedCaption = GetString(caption);
-            return MessageBox.Show(text, translatedCaption, buttons);
-        }
-
-        public static DialogResult ShowLocalizedMessageBox(string text, string caption, MessageBoxButtons buttons)
-        {
-            string translatedCaption = LocalizationManager.GetString(caption);
-            string translatedText = text;
-            string currentLanguage = LocalizationManager.CurrentLanguage == "ru" ? "ru" : "en";
-
-            if (currentLanguage == "en")
-            {
-                translatedText = LocalizationManager.TranslateError(text);
-            }
-
-            return MessageBox.Show(translatedText, translatedCaption, buttons);
-        }
-
         public static DialogResult ShowSaveDialog(string documentName)
         {
             string caption = LocalizationManager.GetString("unsavedChanges");
             string message = LocalizationManager.FormatString("saveChanges", documentName);
-            string currentLanguage = LocalizationManager.CurrentLanguage == "ru" ? "ru" : "en";
-
 
             if (currentLanguage == "en")
             {

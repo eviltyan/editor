@@ -33,6 +33,10 @@ namespace editor
             tabControl1.DrawItem += TabControl1_DrawItem;
             tabControl1.MouseDown += TabControl1_MouseDown;
 
+            this.AllowDrop = true;
+            this.DragEnter += Form1_DragEnter;
+            this.DragDrop += Form1_DragDrop;
+
             RebuildFirstTab();
 
             var firstPage = tabControl1.SelectedTab;
@@ -281,22 +285,6 @@ namespace editor
             }
         }
 
-        private TabPage FindPageContainingControl(Control control)
-        {
-            foreach (TabPage page in tabControl1.TabPages)
-            {
-                SplitContainer split = page.Controls[0] as SplitContainer;
-                if (split != null)
-                {
-                    if (split.Panel1.Controls.Contains(control))
-                        return page;
-                    if (split.Panel2.Controls.Contains(control))
-                        return page;
-                }
-            }
-            return null;
-        }
-
         private void Undo()
         {
             if (tabControl1.TabPages.Count == 0) return;
@@ -483,66 +471,16 @@ namespace editor
 
         private void openDocument()
         {
-            createNewDocument();
-            if (tabControl1.TabPages.Count == 0) return;
-
             using (OpenFileDialog openFileDialog = new OpenFileDialog())
             {
                 openFileDialog.Filter = "All Files|*.*";
+                openFileDialog.Title = LocalizationManager.GetString("openFileTitle");
 
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    TabPage currentPage = tabControl1.SelectedTab;
-                    string filePath = openFileDialog.FileName;
-                    RichTextBox editBox = GetEditRichTextBox(currentPage);
-
-                    if (editBox == null)
-                    {
-                        MessageBox.Show("Не удалось получить редактор текста");
-                        tabControl1.TabPages.Remove(currentPage);
-                        documentInfo.Remove(currentPage);
-                        return;
-                    }
-
-                    try
-                    {
-                        if (filePath.EndsWith(".rtf"))
-                            editBox.LoadFile(filePath, RichTextBoxStreamType.RichText);
-                        else
-                        {
-                            using (StreamReader reader = new StreamReader(filePath, true))
-                            {
-                                editBox.Text = reader.ReadToEnd();
-                            }
-                        }
-
-                        HighlightSyntax(editBox, EventArgs.Empty);
-
-                        DocumentInfo info = documentInfo[currentPage];
-                        info.FilePath = filePath;
-                        info.IsModified = false;
-                        info.IsSaved = true;
-                        currentPage.Text = Path.GetFileName(filePath);
-
-                        info.History.Clear();
-                        info.History.AddState(new TextState(editBox.Text, 0, 0));
-
-                        UpdateStatus();
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Ошибка при открытии: {ex.Message}");
-                        tabControl1.TabPages.Remove(currentPage);
-                        documentInfo.Remove(currentPage);
-                    }
-                }
-                else
-                {
-                    tabControl1.TabPages.Remove(tabControl1.SelectedTab);
-                    documentInfo.Remove(tabControl1.SelectedTab);
+                    OpenFileInNewTab(openFileDialog.FileName);
                 }
             }
-            UpdateUILanguage();
         }
 
         private void openButton_Click(object sender, EventArgs e)
@@ -633,7 +571,8 @@ namespace editor
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при сохранении: {ex.Message}", "Ошибка",
+                MessageBox.Show(LocalizationManager.FormatString("saveError", ex.Message),
+                    LocalizationManager.GetString("error"),
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -1051,14 +990,16 @@ namespace editor
                         });
 
                         string displayValue = token.Value;
-                        lexemesGrid.Rows[lexemesGrid.Rows.Count].DefaultCellStyle.BackColor = Color.FromArgb(255, 200, 200);
 
-                        lexemesGrid.Rows.Add(
+                        int rowIndex = lexemesGrid.Rows.Add(
                             token.Code,
                             GetTokenTypeName(token),
                             displayValue,
                             token.Location
                         );
+
+                        lexemesGrid.Rows[rowIndex].DefaultCellStyle.BackColor = Color.FromArgb(255, 200, 200);
+                        lexemesGrid.Rows[rowIndex].Tag = Tuple.Create(token.Line, token.StartPos);
                     }
                     else
                     {
@@ -1066,14 +1007,14 @@ namespace editor
                         if (token.Type == "space")
                             displayValue = LocalizationManager.GetString("spaceDisplay");
 
-                        lexemesGrid.Rows.Add(
+                        int rowIndex = lexemesGrid.Rows.Add(
                             token.Code,
                             GetTokenTypeName(token),
                             displayValue,
                             token.Location
                         );
 
-                        lexemesGrid.Rows[lexemesGrid.Rows.Count - 1].Tag = Tuple.Create(token.Line, token.StartPos);
+                        lexemesGrid.Rows[rowIndex].Tag = Tuple.Create(token.Line, token.StartPos);
                     }
                 }
 
@@ -1169,6 +1110,7 @@ namespace editor
                 "minus" => "Минус",
                 "end" => "Конец оператора",
                 "space" => "Пробел",
+                "error" => "Ошибка",
                 _ => token.Type ?? "Неизвестно"
             };
         }
@@ -1251,20 +1193,6 @@ namespace editor
                     richTextBoxEd.Focus();
                     richTextBoxEd.Select(charIndex, 1);
                     richTextBoxEd.ScrollToCaret();
-
-                    richTextBoxEd.SelectionColor = Color.Red;
-
-                    System.Timers.Timer timer = new System.Timers.Timer(500);
-                    timer.Elapsed += (s, args) =>
-                    {
-                        richTextBoxEd.Invoke(new Action(() =>
-                        {
-                            richTextBoxEd.SelectionColor = Color.Black;
-                        }));
-                        timer.Stop();
-                        timer.Dispose();
-                    };
-                    timer.Start();
                 }
             }
         }
@@ -1676,11 +1604,19 @@ namespace editor
                 if (row.Cells[1].Value != null)
                 {
                     string typeName = row.Cells[1].Value.ToString();
-                    string typeKey = GetTypeKeyFromDisplayName(typeName);
-                    string translatedType = LocalizationManager.GetString($"tokenType_{typeKey}");
-                    if (translatedType != $"tokenType_{typeKey}")
+
+                    if (typeName == "Ошибка" || typeName == "Error")
                     {
-                        row.Cells[1].Value = translatedType;
+                        row.Cells[1].Value = LocalizationManager.GetString("tokenError");
+                    }
+                    else
+                    {
+                        string typeKey = GetTypeKeyFromDisplayName(typeName);
+                        string translatedType = LocalizationManager.GetString($"tokenType_{typeKey}");
+                        if (translatedType != $"tokenType_{typeKey}")
+                        {
+                            row.Cells[1].Value = translatedType;
+                        }
                     }
                 }
 
@@ -1715,74 +1651,6 @@ namespace editor
                 "Ошибка" or "Error" => "error",
                 _ => displayName
             };
-        }
-
-        private void UpdateAllDataGridViewColumns()
-        {
-            foreach (TabPage page in tabControl1.TabPages)
-            {
-                DataGridView dataGridView = GetErrorsGrid(page);
-                if (dataGridView != null && dataGridView.Columns.Count >= 3)
-                {
-                    dataGridView.Columns[0].HeaderText = LocalizationManager.GetString("errorColumn");
-                    dataGridView.Columns[1].HeaderText = LocalizationManager.GetString("locationColumn");
-                    dataGridView.Columns[2].HeaderText = LocalizationManager.GetString("descriptionColumn");
-                }
-            }
-        }
-
-        private void UpdateAllDataGridViewContent()
-        {
-            foreach (TabPage page in tabControl1.TabPages)
-            {
-                DataGridView dataGridView = GetErrorsGrid(page);
-                if (dataGridView != null && dataGridView.Rows.Count > 0)
-                {
-                    if (dataGridView.Columns.Count >= 3)
-                    {
-                        dataGridView.Columns[0].HeaderText = LocalizationManager.GetString("errorColumn");
-                        dataGridView.Columns[1].HeaderText = LocalizationManager.GetString("locationColumn");
-                        dataGridView.Columns[2].HeaderText = LocalizationManager.GetString("descriptionColumn");
-                    }
-
-                    for (int i = 0; i < dataGridView.Rows.Count - 1; i++)
-                    {
-                        var row = dataGridView.Rows[i];
-                        if (row.Cells[2].Value != null)
-                        {
-                            string originalError = row.Cells[2].Value.ToString();
-                            row.Cells[2].Value = LocalizationManager.TranslateError(originalError);
-                        }
-                    }
-
-                    if (dataGridView.Rows.Count > 0)
-                    {
-                        var lastRow = dataGridView.Rows[dataGridView.Rows.Count - 1];
-                        if (lastRow.Cells[0].Value != null)
-                        {
-                            string totalText = lastRow.Cells[0].Value.ToString();
-                            if (totalText.Contains("Общее количество ошибок") || totalText.Contains("Total errors"))
-                            {
-                                int errorsCount = 0;
-                                var match = System.Text.RegularExpressions.Regex.Match(totalText, @"\d+");
-                                if (match.Success)
-                                {
-                                    errorsCount = int.Parse(match.Value);
-                                }
-
-                                if (errorsCount == 0)
-                                {
-                                    lastRow.Cells[0].Value = LocalizationManager.FormatString("totalErrors", errorsCount) + " - " + LocalizationManager.GetString("noErrors");
-                                }
-                                else
-                                {
-                                    lastRow.Cells[0].Value = LocalizationManager.FormatString("totalErrors", errorsCount);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
 
         private void UpdateStatus()
@@ -2024,6 +1892,90 @@ namespace editor
                 grid.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             }
             grid.CellClick += LexemeGridView_CellClick;
+        }
+
+        private void Form1_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effect = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effect = DragDropEffects.None;
+            }
+        }
+
+        private void Form1_DragDrop(object sender, DragEventArgs e)
+        {
+            string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+
+            if (files != null && files.Length > 0)
+            {
+                foreach (string filePath in files)
+                {
+                    if (File.Exists(filePath))
+                    {
+                        OpenFileInNewTab(filePath);
+                    }
+                }
+            }
+        }
+
+        private void OpenFileInNewTab(string filePath)
+        {
+            createNewDocument();
+
+            TabPage currentPage = tabControl1.SelectedTab;
+            RichTextBox editBox = GetEditRichTextBox(currentPage);
+
+            if (editBox == null)
+            {
+                MessageBox.Show(LocalizationManager.GetString("errorNoEditor"),
+                    LocalizationManager.GetString("error"),
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                tabControl1.TabPages.Remove(currentPage);
+                documentInfo.Remove(currentPage);
+                return;
+            }
+
+            try
+            {
+                if (filePath.EndsWith(".rtf"))
+                {
+                    editBox.LoadFile(filePath, RichTextBoxStreamType.RichText);
+                }
+                else
+                {
+                    using (StreamReader reader = new StreamReader(filePath, true))
+                    {
+                        editBox.Text = reader.ReadToEnd();
+                    }
+                }
+
+                HighlightSyntax(editBox, EventArgs.Empty);
+
+                DocumentInfo info = documentInfo[currentPage];
+                info.FilePath = filePath;
+                info.IsModified = false;
+                info.IsSaved = true;
+                info.OriginalTabName = Path.GetFileName(filePath);
+                currentPage.Text = Path.GetFileName(filePath);
+
+                info.History.Clear();
+                info.History.AddState(new TextState(editBox.Text, 0, 0));
+
+                UpdateStatus();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(LocalizationManager.FormatString("openErrorWithFile", Path.GetFileName(filePath), ex.Message),
+                    LocalizationManager.GetString("error"),
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                tabControl1.TabPages.Remove(currentPage);
+                documentInfo.Remove(currentPage);
+            }
         }
     }
 }

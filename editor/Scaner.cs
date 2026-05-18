@@ -15,7 +15,16 @@ namespace editor
         public bool IsError { get; set; }
         public string ErrorMessage { get; set; }
 
-        public string Location => $"строка {Line}, позиция {StartPos}";
+        public string Location
+        {
+            get
+            {
+                if (LocalizationManager.CurrentLanguage == "en")
+                    return $"line {Line}, position {StartPos}";
+                else
+                    return $"строка {Line}, позиция {StartPos}";
+            }
+        }
     }
 
     public class LexicalAnalyzer

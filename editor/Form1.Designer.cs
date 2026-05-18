@@ -341,7 +341,7 @@
             tabPage1.TabIndex = 0;
             tabPage1.Text = "Документ 1";
             tabPage1.UseVisualStyleBackColor = true;
-            // 
+            //
             // splitContainer1
             // 
             splitContainer1.Dock = DockStyle.Fill;
@@ -355,7 +355,7 @@
             // 
             // splitContainer1.Panel2
             // 
-            splitContainer1.Panel2.Controls.Add(dataGridView);
+            splitContainer1.Panel2.Controls.Add(tabControlResult);
             splitContainer1.Size = new Size(780, 452);
             splitContainer1.SplitterDistance = 240;
             splitContainer1.TabIndex = 0;
@@ -369,6 +369,53 @@
             richTextBoxEdit.TabIndex = 0;
             richTextBoxEdit.Text = "";
             richTextBoxEdit.TextChanged += RichTextBox_TextChanged;
+            //
+            // tabControlResult
+            // 
+            tabControlResult = new TabControl();
+            tabControlResult.Dock = DockStyle.Fill;
+            tabControlResult.Location = new Point(0, 0);
+            tabControlResult.Name = "tabControlResult";
+            tabControlResult.SelectedIndex = 0;
+            tabControlResult.Size = new Size(780, 208);
+            tabControlResult.TabIndex = 0;
+            //
+            // tabPageErrors
+            // 
+            tabPageErrors = new TabPage();
+            tabPageErrors.Location = new Point(4, 24);
+            tabPageErrors.Name = "tabPageErrors";
+            tabPageErrors.Padding = new Padding(3);
+            tabPageErrors.Size = new Size(772, 180);
+            tabPageErrors.TabIndex = 0;
+            tabPageErrors.Text = "Ошибки";
+            tabPageErrors.UseVisualStyleBackColor = true;
+            tabPageErrors.Controls.Add(dataGridView);
+            //
+            // tabPageLexemes
+            // 
+            tabPageLexemes = new TabPage();
+            tabPageLexemes.Location = new Point(4, 24);
+            tabPageLexemes.Name = "tabPageLexemes";
+            tabPageLexemes.Padding = new Padding(3);
+            tabPageLexemes.Size = new Size(772, 180);
+            tabPageLexemes.TabIndex = 1;
+            tabPageLexemes.Text = "Лексемы";
+            tabPageLexemes.UseVisualStyleBackColor = true;
+            tabPageLexemes.Controls.Add(dataGridViewLexemes);
+            //
+            // dataGridViewLexemes
+            // 
+            dataGridViewLexemes = new DataGridView();
+            dataGridViewLexemes.Dock = DockStyle.Fill;
+            dataGridViewLexemes.Location = new Point(3, 3);
+            dataGridViewLexemes.Name = "dataGridViewLexemes";
+            dataGridViewLexemes.ReadOnly = true;
+            dataGridViewLexemes.RowHeadersWidth = 70;
+            dataGridViewLexemes.Size = new Size(766, 174);
+            dataGridViewLexemes.TabIndex = 1;
+            tabControlResult.TabPages.Add(tabPageErrors);
+            tabControlResult.TabPages.Add(tabPageLexemes);
             // 
             // dataGridView
             // 
@@ -714,6 +761,10 @@
         private SplitContainer splitContainer1;
         private RichTextBox richTextBoxEdit;
         private DataGridView dataGridView;
+        private TabControl tabControlResult;
+        private TabPage tabPageErrors;
+        private TabPage tabPageLexemes;
+        private DataGridView dataGridViewLexemes;
         private ToolStripMenuItem открытьПример1ToolStripMenuItem;
         private ToolStripMenuItem открытьПример2ToolStripMenuItem;
         private StatusStrip statusStrip;

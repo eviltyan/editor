@@ -15,6 +15,7 @@ namespace editor
         static LocalizationManager()
         {
             LoadStrings();
+            BuildReverseTranslations();
         }
 
         private static void LoadStrings()
@@ -82,7 +83,9 @@ namespace editor
                 { "analysisError", "Ошибка при анализе: {0}" },
                 { "saveError", "Ошибка при сохранении: {0}" },
                 { "openError", "Ошибка при открытии: {0}" },
-                
+                { "totalErrorsZero", "Общее количество ошибок: 0 - Синтаксических ошибок не обнаружено!" },
+                { "totalErrorsCount", "Общее количество ошибок: {0}" },
+
                 { "tooltipNew", "Создать новый документ" },
                 { "tooltipOpen", "Открыть документ" },
                 { "tooltipSave", "Сохранить документ" },
@@ -105,6 +108,28 @@ namespace editor
                 { "fontSizeGridLabel", "Размер текста в таблице ошибок:" },
                 { "apply", "Применить" },
                 { "cancel", "Отмена" },
+
+                { "errorsTab", "Ошибки" },
+                { "lexemesTab", "Лексемы" },
+                { "lexemeCode", "Код" },
+                { "lexemeType", "Тип лексемы" },
+                { "lexemeValue", "Лексема" },
+                { "lexemeLocation", "Местоположение" },
+
+                { "tokenError", "Ошибка" },
+                { "tokenType_keyword", "Ключевое слово" },
+                { "tokenType_id", "Идентификатор" },
+                { "tokenType_integer", "Целое число" },
+                { "tokenType_numeric", "Вещественное число" },
+                { "tokenType_character", "Строка" },
+                { "tokenType_assign", "Присваивание" },
+                { "tokenType_leftparen", "Открывающая скобка" },
+                { "tokenType_rightparen", "Закрывающая скобка" },
+                { "tokenType_comma", "Запятая" },
+                { "tokenType_minus", "Минус" },
+                { "tokenType_end", "Конец оператора" },
+                { "tokenType_space", "Пробел" },
+                { "spaceDisplay", "(пробел)" },
             };
 
             var en = new Dictionary<string, string>
@@ -168,7 +193,9 @@ namespace editor
                 { "analysisError", "Analysis error: {0}" },
                 { "saveError", "Save error: {0}" },
                 { "openError", "Open error: {0}" },
-                
+                { "totalErrorsZero", "Total errors: 0 - No syntax errors found!" },
+                { "totalErrorsCount", "Total errors: {0}" },
+
                 { "tooltipNew", "Create new document" },
                 { "tooltipOpen", "Open document" },
                 { "tooltipSave", "Save document" },
@@ -191,6 +218,28 @@ namespace editor
                 { "fontSizeGridLabel", "Text size in error table:" },
                 { "apply", "Apply" },
                 { "cancel", "Cancel" },
+
+                { "errorsTab", "Errors" },
+                { "lexemesTab", "Lexemes" },
+                { "lexemeCode", "Code" },
+                { "lexemeType", "Lexeme Type" },
+                { "lexemeValue", "Lexeme" },
+                { "lexemeLocation", "Location" },
+
+                { "tokenError", "Error" },
+                { "tokenType_keyword", "Keyword" },
+                { "tokenType_id", "Identifier" },
+                { "tokenType_integer", "Integer" },
+                { "tokenType_numeric", "Number" },
+                { "tokenType_character", "String" },
+                { "tokenType_assign", "Assignment" },
+                { "tokenType_leftparen", "Left Parenthesis" },
+                { "tokenType_rightparen", "Right Parenthesis" },
+                { "tokenType_comma", "Comma" },
+                { "tokenType_minus", "Minus" },
+                { "tokenType_end", "End of statement" },
+                { "tokenType_space", "Space" },
+                { "spaceDisplay", "(space)" },
             };
 
             strings["ru"] = ru;
@@ -232,31 +281,57 @@ namespace editor
             { "Возможно, не закрыта скобка или отсутствует ';'", "Possible unclosed parenthesis or missing ';'" },
             { "Ожидается цифра перед десятичной точкой", "Expected digit before decimal point" },
             { "Ожидается цифра после десятичной точки", "Expected digit after decimal point" },
-
-            { "Неверный фрагмент", "Invalid fragment" },
-            { "Местоположение", "Location" },
-            { "Описание ошибки", "Error description" },
         };
 
-        public static string TranslateError(string russianError)
+        private static Dictionary<string, string> errorTranslationsEnToRu = new Dictionary<string, string>();
+
+        private static void BuildReverseTranslations()
         {
-            if (currentLanguage == "ru") return russianError;
-
-            string translated = russianError;
-
-            var sortedTranslations = errorTranslationsRuToEn
-                .OrderByDescending(x => x.Key.Length)
-                .ToList();
-
-            foreach (var translation in sortedTranslations)
+            foreach (var pair in errorTranslationsRuToEn)
             {
-                if (translated.Contains(translation.Key))
+                if (!errorTranslationsEnToRu.ContainsKey(pair.Value))
                 {
-                    translated = translated.Replace(translation.Key, translation.Value);
+                    errorTranslationsEnToRu[pair.Value] = pair.Key;
                 }
             }
+        }
 
-            return translated;
+        public static string TranslateError(string error)
+        {
+            if (string.IsNullOrEmpty(error)) return error;
+
+            if (currentLanguage == "ru")
+            {
+                string translated = error;
+                var sortedReverse = errorTranslationsEnToRu
+                    .OrderByDescending(x => x.Key.Length)
+                    .ToList();
+
+                foreach (var translation in sortedReverse)
+                {
+                    if (translated.Contains(translation.Key))
+                    {
+                        translated = translated.Replace(translation.Key, translation.Value);
+                    }
+                }
+                return translated;
+            }
+            else
+            {
+                string translated = error;
+                var sorted = errorTranslationsRuToEn
+                    .OrderByDescending(x => x.Key.Length)
+                    .ToList();
+
+                foreach (var translation in sorted)
+                {
+                    if (translated.Contains(translation.Key))
+                    {
+                        translated = translated.Replace(translation.Key, translation.Value);
+                    }
+                }
+                return translated;
+            }
         }
 
         public static void Initialize(Form1 form)
@@ -301,6 +376,76 @@ namespace editor
         {
             string translatedCaption = GetString(caption);
             return MessageBox.Show(text, translatedCaption, buttons);
+        }
+
+        public static DialogResult ShowLocalizedMessageBox(string text, string caption, MessageBoxButtons buttons)
+        {
+            string translatedCaption = LocalizationManager.GetString(caption);
+            string translatedText = text;
+            string currentLanguage = LocalizationManager.CurrentLanguage == "ru" ? "ru" : "en";
+
+            if (currentLanguage == "en")
+            {
+                translatedText = LocalizationManager.TranslateError(text);
+            }
+
+            return MessageBox.Show(translatedText, translatedCaption, buttons);
+        }
+
+        public static DialogResult ShowSaveDialog(string documentName)
+        {
+            string caption = LocalizationManager.GetString("unsavedChanges");
+            string message = LocalizationManager.FormatString("saveChanges", documentName);
+            string currentLanguage = LocalizationManager.CurrentLanguage == "ru" ? "ru" : "en";
+
+
+            if (currentLanguage == "en")
+            {
+                using (var form = new Form())
+                {
+                    form.Text = caption;
+                    form.StartPosition = FormStartPosition.CenterParent;
+                    form.FormBorderStyle = FormBorderStyle.FixedDialog;
+                    form.MaximizeBox = false;
+                    form.MinimizeBox = false;
+                    form.Size = new Size(400, 150);
+
+                    Label label = new Label();
+                    label.Text = message;
+                    label.Location = new Point(20, 20);
+                    label.Size = new Size(350, 50);
+                    label.TextAlign = ContentAlignment.MiddleLeft;
+
+                    Button btnYes = new Button();
+                    btnYes.Text = "Yes";
+                    btnYes.Location = new Point(180, 80);
+                    btnYes.Size = new Size(60, 30);
+                    btnYes.DialogResult = DialogResult.Yes;
+
+                    Button btnNo = new Button();
+                    btnNo.Text = "No";
+                    btnNo.Location = new Point(250, 80);
+                    btnNo.Size = new Size(60, 30);
+                    btnNo.DialogResult = DialogResult.No;
+
+                    Button btnCancel = new Button();
+                    btnCancel.Text = "Cancel";
+                    btnCancel.Location = new Point(320, 80);
+                    btnCancel.Size = new Size(60, 30);
+                    btnCancel.DialogResult = DialogResult.Cancel;
+
+                    form.Controls.Add(label);
+                    form.Controls.Add(btnYes);
+                    form.Controls.Add(btnNo);
+                    form.Controls.Add(btnCancel);
+
+                    return form.ShowDialog();
+                }
+            }
+            else
+            {
+                return MessageBox.Show(message, caption, MessageBoxButtons.YesNoCancel);
+            }
         }
     }
 }

@@ -855,35 +855,104 @@ namespace editor
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
-            //RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
-            //if (editBox == null) return base.ProcessCmdKey(ref msg, keyData);
+            RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
 
-            //if (keyData == (Keys.Control | Keys.A))
-            //{
-            //    editBox.SelectAll();
-            //    return true;
-            //}
+            if (keyData == (Keys.Control | Keys.N))
+            {
+                createNewDocument();
+                return true;
+            }
 
-            //if (keyData == (Keys.Control | Keys.C))
-            //{
-            //    if (editBox.SelectionLength > 0)
-            //        editBox.Copy();
-            //    return true;
-            //}
+            if (keyData == (Keys.Control | Keys.O))
+            {
+                openDocument();
+                return true;
+            }
 
-            //if (keyData == (Keys.Control | Keys.X))
-            //{
-            //    if (editBox.SelectionLength > 0)
-            //        editBox.Cut();
-            //    return true;
-            //}
+            if (keyData == (Keys.Control | Keys.S))
+            {
+                saveDocument();
+                return true;
+            }
 
-            //if (keyData == (Keys.Control | Keys.V))
-            //{
-            //    if (Clipboard.ContainsText())
-            //        editBox.Paste();
-            //    return true;
-            //}
+            if (keyData == (Keys.Control | Keys.Shift | Keys.S))
+            {
+                saveDocumentAs();
+                return true;
+            }
+
+            if (keyData == (Keys.Control | Keys.Z))
+            {
+                Undo();
+                return true;
+            }
+
+            if (keyData == (Keys.Control | Keys.Shift | Keys.Z))
+            {
+                Redo();
+                return true;
+            }
+
+            if (keyData == (Keys.Control | Keys.C))
+            {
+                if (editBox != null && editBox.SelectionLength > 0)
+                {
+                    editBox.Copy();
+                }
+                return true;
+            }
+
+            if (keyData == (Keys.Control | Keys.X))
+            {
+                if (editBox != null && editBox.SelectionLength > 0)
+                {
+                    editBox.Cut();
+                }
+                return true;
+            }
+
+            if (keyData == (Keys.Control | Keys.V))
+            {
+                if (editBox != null && Clipboard.ContainsText())
+                {
+                    editBox.Paste();
+                }
+                return true;
+            }
+
+            if (keyData == (Keys.Control | Keys.A))
+            {
+                if (editBox != null)
+                {
+                    editBox.SelectAll();
+                }
+                return true;
+            }
+
+            if (keyData == Keys.F5)
+            {
+                Analyze();
+                return true;
+            }
+
+            if (keyData == Keys.F1)
+            {
+                string url = "editor.Руководство-пользователя.-Компилятор.html";
+                openHtmlFile(url);
+                return true;
+            }
+
+            if (keyData == Keys.F12)
+            {
+                InfoForm.ShowInstance("О программе");
+                return true;
+            }
+
+            if (keyData == Keys.Escape)
+            {
+                this.Close();
+                return true;
+            }
 
             return base.ProcessCmdKey(ref msg, keyData);
         }

@@ -62,18 +62,23 @@ namespace editor
             dataGridView.Columns["Description"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dataGridView.CellClick += ErrorGridView_CellClick;
 
+            tabControl1.SelectedIndexChanged += (s, e) => UpdateStatus();
+
             RichTextBox firstBox = GetEditRichTextBox(tabControl1.SelectedTab);
             DataGridView firstGrid = GetDataGridView(tabControl1.SelectedTab);
 
             if (firstBox != null)
             {
                 currentGlobalEditZoom = firstBox.ZoomFactor;
+                firstBox.SelectionChanged += UpdateCursorPosition;
             }
 
             if (firstGrid != null)
             {
                 currentGlobalGridFontSize = firstGrid.Font.Size / 8f;
             }
+
+            UpdateStatus();
 
             UpdateUILanguage();
         }
@@ -95,6 +100,7 @@ namespace editor
 
             richTextBoxEdit.MouseWheel += EditBox_MouseWheel;
             richTextBoxEdit.TextChanged += RichTextBox_TextChanged;
+            richTextBoxEdit.SelectionChanged += UpdateCursorPosition;
 
             DataGridView dataGridView = new DataGridView();
             dataGridView.Dock = DockStyle.Fill;
@@ -138,6 +144,8 @@ namespace editor
             tabControl1.SelectedTab = newPage;
 
             UpdateUndoRedoButtons();
+
+            UpdateStatus();
         }
 
         private RichTextBox GetEditRichTextBox(TabPage page)
@@ -296,6 +304,7 @@ namespace editor
             }
 
             UpdateUndoRedoButtons();
+            UpdateStatus();
         }
 
         private void UpdateUndoRedoButtons()
@@ -407,6 +416,8 @@ namespace editor
 
                         info.History.Clear();
                         info.History.AddState(new TextState(editBox.Text, 0, 0));
+
+                        UpdateStatus();
                     }
                     catch (Exception ex)
                     {
@@ -449,6 +460,7 @@ namespace editor
                 SaveToFile(currentPage, info.FilePath);
             }
             UpdateUndoRedoButtons();
+            UpdateStatus();
         }
 
         private void saveDocumentAs()
@@ -475,6 +487,7 @@ namespace editor
                 }
                 UpdateUndoRedoButtons();
             }
+            UpdateStatus();
         }
 
         private void SaveToFile(TabPage page, string filePath)
@@ -602,6 +615,8 @@ namespace editor
             tabControl1.TabPages.Remove(page);
             documentInfo.Remove(page);
             closeButtons.Remove(page);
+
+            UpdateStatus();
         }
 
         private void выходToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1245,6 +1260,8 @@ namespace editor
             toolTip1.SetToolTip(startButton, LocalizationManager.GetString("tooltipStart"));
             toolTip1.SetToolTip(infoButton, LocalizationManager.GetString("tooltipHelp"));
             toolTip1.SetToolTip(button1, LocalizationManager.GetString("tooltipAbout"));
+
+            UpdateStatus();
         }
 
         private void UpdateAllDataGridViewColumns()
@@ -1327,7 +1344,55 @@ namespace editor
             return null;
         }
 
-        
+        private void UpdateStatus()
+        {
+            if (tabControl1.TabPages.Count == 0 || tabControl1.SelectedTab == null)
+            {
+                statusLabel.Text = LocalizationManager.GetString("statusNoDocuments");
+                cursorPositionLabel.Text = LocalizationManager.FormatString("cursorPosition", 0, 0);
+                fileInfoLabel.Text = "";
+                languageLabel.Text = LocalizationManager.CurrentLanguage == "ru" ? "Русский" : "English";
+                return;
+            }
+
+            TabPage currentPage = tabControl1.SelectedTab;
+            DocumentInfo info = documentInfo[currentPage];
+            RichTextBox editBox = GetEditRichTextBox(currentPage);
+
+            if (info.IsModified)
+            {
+                statusLabel.Text = LocalizationManager.GetString("statusModified");
+                statusLabel.ForeColor = Color.Orange;
+            }
+            else
+            {
+                statusLabel.Text = LocalizationManager.GetString("statusReady");
+                statusLabel.ForeColor = Color.Green;
+            }
+
+            if (!info.IsNewDocument && info.FilePath != null)
+            {
+                fileInfoLabel.Text = Path.GetFileName(info.FilePath);
+            }
+            else
+            {
+                fileInfoLabel.Text = info.OriginalTabName;
+            }
+
+            if (editBox != null)
+            {
+                int line = editBox.GetLineFromCharIndex(editBox.SelectionStart) + 1;
+                int col = editBox.SelectionStart - editBox.GetFirstCharIndexFromLine(line - 1) + 1;
+                cursorPositionLabel.Text = LocalizationManager.FormatString("cursorPosition", line, col);
+            }
+
+            languageLabel.Text = LocalizationManager.CurrentLanguage == "ru" ? "Русский" : "English";
+        }
+
+        private void UpdateCursorPosition(object sender, EventArgs e)
+        {
+            UpdateStatus();
+        }
 
 
     }

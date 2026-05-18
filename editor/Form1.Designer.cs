@@ -82,6 +82,11 @@
             языкToolStripMenuItem = new ToolStripMenuItem();
             русскийToolStripMenuItem = new ToolStripMenuItem();
             английскийToolStripMenuItem = new ToolStripMenuItem();
+            statusStrip = new StatusStrip();
+            statusLabel = new ToolStripStatusLabel("Готов");
+            cursorPositionLabel = new ToolStripStatusLabel("Строка: 1, Позиция: 1");
+            languageLabel = new ToolStripStatusLabel("Русский");
+            fileInfoLabel = new ToolStripStatusLabel("");
             toolTip1 = new ToolTip(components);
             tableLayoutPanel1.SuspendLayout();
             tabControl1.SuspendLayout();
@@ -616,6 +621,19 @@
             английскийToolStripMenuItem.Size = new Size(132, 22);
             английскийToolStripMenuItem.Text = "Английский";
             английскийToolStripMenuItem.Click += АнглийскийToolStripMenuItem_Click;
+            //
+            // statusStrip
+            //
+            statusStrip.Items.Add(statusLabel);
+            statusStrip.Items.Add(new ToolStripStatusLabel(" | "));
+            statusStrip.Items.Add(cursorPositionLabel);
+            statusStrip.Items.Add(new ToolStripStatusLabel(" | "));
+            statusStrip.Items.Add(fileInfoLabel);
+            statusStrip.Items.Add(new ToolStripStatusLabel(" | "));
+            statusStrip.Items.Add(languageLabel);
+            statusStrip.Location = new Point(0, ClientSize.Height - statusStrip.Height);
+            statusStrip.SizingGrip = false;
+            Controls.Add(statusStrip);
             // 
             // Form1
             // 
@@ -698,5 +716,10 @@
         private DataGridView dataGridView;
         private ToolStripMenuItem открытьПример1ToolStripMenuItem;
         private ToolStripMenuItem открытьПример2ToolStripMenuItem;
+        private StatusStrip statusStrip;
+        private ToolStripStatusLabel statusLabel;
+        private ToolStripStatusLabel cursorPositionLabel;
+        private ToolStripStatusLabel languageLabel;
+        private ToolStripStatusLabel fileInfoLabel;
     }
 }

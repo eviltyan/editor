@@ -35,6 +35,8 @@ namespace editor
 
             tabFont = this.Font;
 
+            UpgradeFirstTabToLineNumbers();
+
             DocumentInfo info = new DocumentInfo
             {
                 FilePath = null,
@@ -83,6 +85,83 @@ namespace editor
             UpdateUILanguage();
         }
 
+        private void UpgradeFirstTabToLineNumbers()
+        {
+            if (tabControl1.TabPages.Count == 0) return;
+
+            TabPage firstPage = tabControl1.TabPages[0];
+            SplitContainer split = firstPage.Controls[0] as SplitContainer;
+            if (split == null) return;
+
+            if (split.Panel1.Controls.Count > 0 && split.Panel1.Controls[0] is TableLayoutPanel) return;
+
+            if (split.Panel1.Controls.Count == 0) return;
+
+            RichTextBox oldBox = split.Panel1.Controls[0] as RichTextBox;
+            if (oldBox == null) return;
+
+            string oldText = oldBox.Text;
+            float oldZoom = oldBox.ZoomFactor;
+            int oldSelectionStart = oldBox.SelectionStart;
+            int oldSelectionLength = oldBox.SelectionLength;
+
+            DocumentInfo info = null;
+            if (documentInfo.ContainsKey(firstPage))
+            {
+                info = documentInfo[firstPage];
+            }
+            else
+            {
+                info = new DocumentInfo
+                {
+                    FilePath = null,
+                    IsModified = false,
+                    IsSaved = false,
+                    OriginalTabName = firstPage.Text
+                };
+                documentInfo[firstPage] = info;
+            }
+
+            TableLayoutPanel container = new TableLayoutPanel();
+            container.Dock = DockStyle.Fill;
+            container.ColumnCount = 2;
+            container.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 50));
+            container.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            container.RowCount = 1;
+            container.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+            LineNumberRichTextBox newBox = new LineNumberRichTextBox();
+            newBox.Dock = DockStyle.Fill;
+            newBox.AcceptsTab = true;
+            newBox.Text = oldText;
+            newBox.ZoomFactor = oldZoom;
+            newBox.WordWrap = false;
+            newBox.SelectionStart = oldSelectionStart;
+            newBox.SelectionLength = oldSelectionLength;
+            newBox.BorderStyle = BorderStyle.None;
+            newBox.TabIndex = 0;
+
+            LineNumberPanel linePanel = new LineNumberPanel(newBox);
+            linePanel.Dock = DockStyle.Fill;
+            linePanel.Width = 50;
+            linePanel.BackColor = Color.FromArgb(240, 240, 240);
+
+            container.Controls.Add(linePanel, 0, 0);
+            container.Controls.Add(newBox, 1, 0);
+
+            newBox.MouseWheel += EditBox_MouseWheel;
+            newBox.TextChanged += RichTextBox_TextChanged;
+            newBox.SelectionChanged += UpdateCursorPosition;
+            newBox.TextChanged += HighlightSyntax;
+
+            split.Panel1.Controls.Clear();
+            split.Panel1.Controls.Add(container);
+
+            info.History.Clear();
+            info.History.AddState(new TextState(newBox.Text, newBox.SelectionStart, newBox.SelectionLength));
+            documentInfo[firstPage] = info;
+        }
+
         private void createNewDocument()
         {
             TabPage newPage = new TabPage();
@@ -94,13 +173,33 @@ namespace editor
             splitContainer.Orientation = Orientation.Horizontal;
             splitContainer.SplitterDistance = splitContainer.Height / 2;
 
-            RichTextBox richTextBoxEdit = new RichTextBox();
+            TableLayoutPanel container = new TableLayoutPanel();
+            container.Dock = DockStyle.Fill;
+            container.ColumnCount = 2;
+            container.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 50));
+            container.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            container.RowCount = 1;
+            container.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+            LineNumberRichTextBox richTextBoxEdit = new LineNumberRichTextBox();
             richTextBoxEdit.Dock = DockStyle.Fill;
             richTextBoxEdit.AcceptsTab = true;
+            richTextBoxEdit.WordWrap = false;
+            richTextBoxEdit.Multiline = true;
 
-            richTextBoxEdit.MouseWheel += EditBox_MouseWheel;
+            richTextBoxEdit.BorderStyle = BorderStyle.None;
+
+            LineNumberPanel lineNumberPanel = new LineNumberPanel(richTextBoxEdit);
+            lineNumberPanel.Dock = DockStyle.Fill;
+            lineNumberPanel.Width = 50;
+            lineNumberPanel.BackColor = Color.FromArgb(240, 240, 240);
+
+            container.Controls.Add(lineNumberPanel, 0, 0);
+            container.Controls.Add(richTextBoxEdit, 1, 0);
+
             richTextBoxEdit.TextChanged += RichTextBox_TextChanged;
             richTextBoxEdit.SelectionChanged += UpdateCursorPosition;
+            richTextBoxEdit.TextChanged += HighlightSyntax;
 
             DataGridView dataGridView = new DataGridView();
             dataGridView.Dock = DockStyle.Fill;
@@ -119,7 +218,7 @@ namespace editor
 
             dataGridView.CellClick += ErrorGridView_CellClick;
 
-            splitContainer.Panel1.Controls.Add(richTextBoxEdit);
+            splitContainer.Panel1.Controls.Add(container);
             splitContainer.Panel2.Controls.Add(dataGridView);
             newPage.Controls.Add(splitContainer);
 
@@ -146,6 +245,8 @@ namespace editor
             UpdateUndoRedoButtons();
 
             UpdateStatus();
+
+            richTextBoxEdit.Focus();
         }
 
         private RichTextBox GetEditRichTextBox(TabPage page)
@@ -153,10 +254,18 @@ namespace editor
             if (page == null || page.Controls.Count == 0) return null;
 
             SplitContainer split = page.Controls[0] as SplitContainer;
-            if (split != null && split.Panel1.Controls.Count > 0)
+            if (split == null) return null;
+
+            if (split.Panel1.Controls.Count == 0) return null;
+
+            if (split.Panel1.Controls[0] is TableLayoutPanel container)
             {
-                return split.Panel1.Controls[0] as RichTextBox;
+                if (container.Controls.Count > 1)
+                {
+                    return container.Controls[1] as RichTextBox;
+                }
             }
+
             return null;
         }
 
@@ -407,6 +516,8 @@ namespace editor
                                 editBox.Text = reader.ReadToEnd();
                             }
                         }
+
+                        HighlightSyntax(editBox, EventArgs.Empty);
 
                         DocumentInfo info = documentInfo[currentPage];
                         info.FilePath = filePath;
@@ -1099,6 +1210,8 @@ namespace editor
                 {
                     richTextBox.Text = reader.ReadToEnd();
                 }
+
+                HighlightSyntax(richTextBox, EventArgs.Empty);
             }
             catch (Exception ex)
             { }
@@ -1118,6 +1231,8 @@ namespace editor
                 {
                     richTextBox.Text = reader.ReadToEnd();
                 }
+
+                HighlightSyntax(richTextBox, EventArgs.Empty);
             }
             catch (Exception ex)
             { }
@@ -1159,6 +1274,19 @@ namespace editor
             if (box != null)
             {
                 box.ZoomFactor = editZoom;
+
+                SplitContainer split = page.Controls[0] as SplitContainer;
+                if (split != null && split.Panel1.Controls[0] is TableLayoutPanel container)
+                {
+                    foreach (Control ctrl in container.Controls)
+                    {
+                        if (ctrl is LineNumberPanel linePanel)
+                        {
+                            linePanel.Invalidate();
+                            break;
+                        }
+                    }
+                }
             }
 
             if (grid != null)
@@ -1394,6 +1522,132 @@ namespace editor
             UpdateStatus();
         }
 
+        private void HighlightSyntax(object sender, EventArgs e)
+        {
+            RichTextBox rtb = sender as RichTextBox;
+            if (rtb == null) return;
 
+            if (rtb.TextLength > 50000) return;
+
+            int selectionStart = rtb.SelectionStart;
+            int selectionLength = rtb.SelectionLength;
+
+            rtb.TextChanged -= HighlightSyntax;
+
+            rtb.SuspendLayout();
+
+            rtb.SelectAll();
+            rtb.SelectionColor = Color.Black;
+
+            string text = rtb.Text;
+
+            int index = 0;
+            while ((index = text.IndexOf("TRUE", index, StringComparison.Ordinal)) != -1)
+            {
+                bool isWordStart = (index == 0 || !char.IsLetterOrDigit(text[index - 1]));
+                bool isWordEnd = (index + 4 == text.Length || !char.IsLetterOrDigit(text[index + 4]));
+                if (isWordStart && isWordEnd)
+                {
+                    rtb.Select(index, 4);
+                    rtb.SelectionColor = Color.DodgerBlue;
+                }
+                index += 4;
+            }
+
+            index = 0;
+            while ((index = text.IndexOf("FALSE", index, StringComparison.Ordinal)) != -1)
+            {
+                bool isWordStart = (index == 0 || !char.IsLetterOrDigit(text[index - 1]));
+                bool isWordEnd = (index + 5 == text.Length || !char.IsLetterOrDigit(text[index + 5]));
+                if (isWordStart && isWordEnd)
+                {
+                    rtb.Select(index, 5);
+                    rtb.SelectionColor = Color.DodgerBlue;
+                }
+                index += 5;
+            }
+
+            index = 0;
+            while ((index = text.IndexOf("NULL", index, StringComparison.Ordinal)) != -1)
+            {
+                bool isWordStart = (index == 0 || !char.IsLetterOrDigit(text[index - 1]));
+                bool isWordEnd = (index + 4 == text.Length || !char.IsLetterOrDigit(text[index + 4]));
+                if (isWordStart && isWordEnd)
+                {
+                    rtb.Select(index, 4);
+                    rtb.SelectionColor = Color.DarkOrange;
+                }
+                index += 4;
+            }
+
+            index = 0;
+            while ((index = text.IndexOf("c", index, StringComparison.Ordinal)) != -1)
+            {
+                bool isWordStart = (index == 0 || !char.IsLetterOrDigit(text[index - 1]));
+                bool isWordEnd = (index + 1 == text.Length || !char.IsLetterOrDigit(text[index + 1]));
+                if (isWordStart && isWordEnd)
+                {
+                    rtb.Select(index, 1);
+                    rtb.SelectionColor = Color.LimeGreen;
+                }
+                index += 1;
+            }
+
+            int arrowIndex = 0;
+            while ((arrowIndex = text.IndexOf("<-", arrowIndex)) != -1)
+            {
+                rtb.Select(arrowIndex, 2);
+                rtb.SelectionColor = Color.MediumPurple;
+                arrowIndex += 2;
+            }
+
+            System.Text.RegularExpressions.Regex numberRegex = new System.Text.RegularExpressions.Regex(@"\b\d+(\.\d+)?\b");
+            foreach (System.Text.RegularExpressions.Match match in numberRegex.Matches(text))
+            {
+                rtb.Select(match.Index, match.Length);
+                rtb.SelectionColor = Color.Crimson;
+            }
+
+            int quoteIndex = 0;
+            bool inQuote = false;
+            int quoteStart = 0;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                if (text[i] == '"')
+                {
+                    if (!inQuote)
+                    {
+                        inQuote = true;
+                        quoteStart = i;
+                    }
+                    else
+                    {
+                        inQuote = false;
+                        rtb.Select(quoteStart, i - quoteStart + 1);
+                        rtb.SelectionColor = Color.Teal;
+                    }
+                }
+            }
+
+            int commentIndex = 0;
+            while ((commentIndex = text.IndexOf("#", commentIndex)) != -1)
+            {
+                int lineEnd = text.IndexOf("\n", commentIndex);
+                if (lineEnd == -1) lineEnd = text.Length;
+
+                rtb.Select(commentIndex, lineEnd - commentIndex);
+                rtb.SelectionColor = Color.Gray;
+
+                commentIndex = lineEnd;
+            }
+
+            rtb.Select(selectionStart, selectionLength);
+            rtb.SelectionColor = Color.Black;
+
+            rtb.ResumeLayout();
+
+            rtb.TextChanged += HighlightSyntax;
+        }
     }
 }

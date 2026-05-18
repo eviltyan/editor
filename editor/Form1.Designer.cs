@@ -77,6 +77,11 @@
             справкаToolStripMenuItem = new ToolStripMenuItem();
             вызовСправкиToolStripMenuItem = new ToolStripMenuItem();
             оПрограммеToolStripMenuItem = new ToolStripMenuItem();
+            настройкиToolStripMenuItem = new ToolStripMenuItem();
+            изменениеРазмераТекстаToolStripMenuItem = new ToolStripMenuItem();
+            языкToolStripMenuItem = new ToolStripMenuItem();
+            русскийToolStripMenuItem = new ToolStripMenuItem();
+            английскийToolStripMenuItem = new ToolStripMenuItem();
             toolTip1 = new ToolTip(components);
             tableLayoutPanel1.SuspendLayout();
             tabControl1.SuspendLayout();
@@ -374,7 +379,7 @@
             // 
             // menuStrip1
             // 
-            menuStrip1.Items.AddRange(new ToolStripItem[] { файлToolStripMenuItem, правкаToolStripMenuItem, текстToolStripMenuItem, пускToolStripMenuItem, справкаToolStripMenuItem });
+            menuStrip1.Items.AddRange(new ToolStripItem[] { файлToolStripMenuItem, правкаToolStripMenuItem, текстToolStripMenuItem, пускToolStripMenuItem, справкаToolStripMenuItem, настройкиToolStripMenuItem });
             menuStrip1.Location = new Point(0, 0);
             menuStrip1.Name = "menuStrip1";
             menuStrip1.Size = new Size(800, 24);
@@ -577,6 +582,41 @@
             оПрограммеToolStripMenuItem.Text = "О программе";
             оПрограммеToolStripMenuItem.Click += оПрограммеToolStripMenuItem_Click;
             // 
+            // настройкиToolStripMenuItem
+            // 
+            настройкиToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { изменениеРазмераТекстаToolStripMenuItem, языкToolStripMenuItem });
+            настройкиToolStripMenuItem.Name = "настройкиToolStripMenuItem";
+            настройкиToolStripMenuItem.Size = new Size(76, 20);
+            настройкиToolStripMenuItem.Text = "Настройки";
+            // 
+            // изменениеРазмераТекстаToolStripMenuItem
+            // 
+            изменениеРазмераТекстаToolStripMenuItem.Name = "изменениеРазмераТекстаToolStripMenuItem";
+            изменениеРазмераТекстаToolStripMenuItem.Size = new Size(207, 22);
+            изменениеРазмераТекстаToolStripMenuItem.Text = "Изменение размера текста";
+            изменениеРазмераТекстаToolStripMenuItem.Click += ИзменениеРазмераТекстаToolStripMenuItem_Click;
+            // 
+            // языкToolStripMenuItem
+            // 
+            языкToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { русскийToolStripMenuItem, английскийToolStripMenuItem });
+            языкToolStripMenuItem.Name = "языкToolStripMenuItem";
+            языкToolStripMenuItem.Size = new Size(207, 22);
+            языкToolStripMenuItem.Text = "Язык";
+            // 
+            // русскийToolStripMenuItem
+            // 
+            русскийToolStripMenuItem.Name = "русскийToolStripMenuItem";
+            русскийToolStripMenuItem.Size = new Size(132, 22);
+            русскийToolStripMenuItem.Text = "Русский";
+            русскийToolStripMenuItem.Click += РусскийToolStripMenuItem_Click;
+            // 
+            // английскийToolStripMenuItem
+            // 
+            английскийToolStripMenuItem.Name = "английскийToolStripMenuItem";
+            английскийToolStripMenuItem.Size = new Size(132, 22);
+            английскийToolStripMenuItem.Text = "Английский";
+            английскийToolStripMenuItem.Click += АнглийскийToolStripMenuItem_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -645,6 +685,11 @@
         private ToolStripMenuItem исходныйКодПрограммыToolStripMenuItem;
         private ToolStripMenuItem вызовСправкиToolStripMenuItem;
         private ToolStripMenuItem оПрограммеToolStripMenuItem;
+        private ToolStripMenuItem настройкиToolStripMenuItem;
+        private ToolStripMenuItem изменениеРазмераТекстаToolStripMenuItem;
+        private ToolStripMenuItem языкToolStripMenuItem;
+        private ToolStripMenuItem русскийToolStripMenuItem;
+        private ToolStripMenuItem английскийToolStripMenuItem;
         private ToolTip toolTip1;
         private TabControl tabControl1;
         private TabPage tabPage1;

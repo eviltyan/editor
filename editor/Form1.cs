@@ -17,12 +17,17 @@ namespace editor
         private LexicalAnalyzer analyzer;
         private SyntaxAutomaton syntax;
 
+        private float currentGlobalEditZoom = 1.0f;
+        private float currentGlobalGridFontSize = 8f;
+
         public Form1()
         {
             InitializeComponent();
 
             analyzer = new LexicalAnalyzer();
             syntax = new SyntaxAutomaton();
+
+            LocalizationManager.Initialize(this);
 
             tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
             tabControl1.DrawItem += TabControl1_DrawItem;
@@ -56,6 +61,21 @@ namespace editor
             dataGridView.Columns.Add("Description", "Описание ошибки");
             dataGridView.Columns["Description"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dataGridView.CellClick += ErrorGridView_CellClick;
+
+            RichTextBox firstBox = GetEditRichTextBox(tabControl1.SelectedTab);
+            DataGridView firstGrid = GetDataGridView(tabControl1.SelectedTab);
+
+            if (firstBox != null)
+            {
+                currentGlobalEditZoom = firstBox.ZoomFactor;
+            }
+
+            if (firstGrid != null)
+            {
+                currentGlobalGridFontSize = firstGrid.Font.Size / 8f;
+            }
+
+            UpdateUILanguage();
         }
 
         private void createNewDocument()
@@ -73,11 +93,16 @@ namespace editor
             richTextBoxEdit.Dock = DockStyle.Fill;
             richTextBoxEdit.AcceptsTab = true;
 
+            richTextBoxEdit.MouseWheel += EditBox_MouseWheel;
+            richTextBoxEdit.TextChanged += RichTextBox_TextChanged;
+
             DataGridView dataGridView = new DataGridView();
             dataGridView.Dock = DockStyle.Fill;
             dataGridView.AllowUserToAddRows = false;
             dataGridView.AllowUserToDeleteRows = false;
             dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridView.ReadOnly = true;
+            dataGridView.RowHeadersWidth = 70;
 
             dataGridView.Columns.Add("Fragment", "Неверный фрагмент");
             dataGridView.Columns["Fragment"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
@@ -85,6 +110,7 @@ namespace editor
             dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dataGridView.Columns.Add("Description", "Описание ошибки");
             dataGridView.Columns["Description"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+
             dataGridView.CellClick += ErrorGridView_CellClick;
 
             splitContainer.Panel1.Controls.Add(richTextBoxEdit);
@@ -97,13 +123,15 @@ namespace editor
                 IsModified = false,
                 IsSaved = false,
                 OriginalTabName = tabName
-            };
+            };            
 
-            RichTextBox editBox = GetEditRichTextBox(newPage);
-            editBox.TextChanged += RichTextBox_TextChanged;
-
-            info.History.AddState(new TextState(editBox.Text, editBox.SelectionStart, editBox.SelectionLength));
+            info.History.AddState(new TextState(richTextBoxEdit.Text, richTextBoxEdit.SelectionStart, richTextBoxEdit.SelectionLength));
             documentInfo[newPage] = info;
+
+            ApplyFontSizeToPage(newPage, currentGlobalEditZoom, currentGlobalGridFontSize);
+
+            UpdateAllDataGridViewColumns();
+            UpdateAllDataGridViewContent();
 
             tabControl1.TabPages.Add(newPage);
 
@@ -114,8 +142,14 @@ namespace editor
 
         private RichTextBox GetEditRichTextBox(TabPage page)
         {
+            if (page == null || page.Controls.Count == 0) return null;
+
             SplitContainer split = page.Controls[0] as SplitContainer;
-            return split.Panel1.Controls[0] as RichTextBox;
+            if (split != null && split.Panel1.Controls.Count > 0)
+            {
+                return split.Panel1.Controls[0] as RichTextBox;
+            }
+            return null;
         }
 
         private void AddTextState(RichTextBox editBox, TabPage page)
@@ -123,6 +157,36 @@ namespace editor
             DocumentInfo info = documentInfo[page];
             info.History.AddState(new TextState(editBox.Text, editBox.SelectionStart, editBox.SelectionLength));
             UpdateUndoRedoButtons();
+        }
+
+        private void EditBox_MouseWheel(object sender, MouseEventArgs e)
+        {
+            if (ModifierKeys == Keys.Control)
+            {
+                RichTextBox editBox = sender as RichTextBox;
+                if (editBox != null)
+                {
+                    float newSize = editBox.ZoomFactor + (e.Delta > 0 ? 0.1f : -0.1f);
+                    newSize = Math.Max(0.5f, Math.Min(2.0f, newSize));
+                    editBox.ZoomFactor = newSize;
+                }
+            }
+        }
+
+        private TabPage FindPageContainingControl(Control control)
+        {
+            foreach (TabPage page in tabControl1.TabPages)
+            {
+                SplitContainer split = page.Controls[0] as SplitContainer;
+                if (split != null)
+                {
+                    if (split.Panel1.Controls.Contains(control))
+                        return page;
+                    if (split.Panel2.Controls.Contains(control))
+                        return page;
+                }
+            }
+            return null;
         }
 
         private void Undo()
@@ -321,9 +385,7 @@ namespace editor
                 {
                     TabPage currentPage = tabControl1.SelectedTab;
                     string filePath = openFileDialog.FileName;
-
-                    SplitContainer split = currentPage.Controls[0] as SplitContainer;
-                    RichTextBox editBox = split.Panel1.Controls[0] as RichTextBox;
+                    RichTextBox editBox = GetEditRichTextBox(currentPage);
 
                     try
                     {
@@ -343,8 +405,8 @@ namespace editor
                         info.IsSaved = true;
                         currentPage.Text = Path.GetFileName(filePath);
 
-                        info.History.AddState(new TextState(editBox.Text, editBox.SelectionStart, editBox.SelectionLength));
-                        documentInfo[tabControl1.SelectedTab] = info;
+                        info.History.Clear();
+                        info.History.AddState(new TextState(editBox.Text, 0, 0));
                     }
                     catch (Exception ex)
                     {
@@ -352,12 +414,6 @@ namespace editor
                         tabControl1.TabPages.Remove(currentPage);
                         documentInfo.Remove(currentPage);
                     }
-
-                    SplitContainer splitReadOnly = currentPage.Controls[0] as SplitContainer;
-                    DataGridView dataGridView = splitReadOnly.Panel2.Controls[0] as DataGridView;
-                    dataGridView.Rows.Clear();
-                    dataGridView.CellClick += ErrorGridView_CellClick;
-                    tabControl1.SelectedTab = currentPage;
                 }
                 else
                 {
@@ -528,9 +584,9 @@ namespace editor
             if (info.IsModified)
             {
                 DialogResult result = MessageBox.Show(
-                    $"Сохранить изменения в документе '{info.DisplayName}'?",
-                    "Несохраненные изменения",
-                    MessageBoxButtons.YesNo);
+                    LocalizationManager.FormatString("saveChanges", info.DisplayName),
+                    LocalizationManager.GetString("unsavedChanges"),
+                    MessageBoxButtons.YesNoCancel);
 
                 if (result == DialogResult.Yes)
                 {
@@ -562,9 +618,9 @@ namespace editor
                     tabControl1.SelectedTab = page;
 
                     DialogResult result = MessageBox.Show(
-                        $"Документ '{documentInfo[page].DisplayName}' имеет несохраненные изменения.\nСохранить перед выходом?",
-                        "Несохраненные изменения",
-                        MessageBoxButtons.YesNo,
+                        LocalizationManager.FormatString("saveBeforeExit", documentInfo[page].DisplayName),
+                        LocalizationManager.GetString("unsavedChanges"),
+                        MessageBoxButtons.YesNoCancel,
                         MessageBoxIcon.Question);
 
                     if (result == DialogResult.Yes)
@@ -673,35 +729,35 @@ namespace editor
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
-            RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
-            if (editBox == null) return base.ProcessCmdKey(ref msg, keyData);
+            //RichTextBox editBox = GetEditRichTextBox(tabControl1.SelectedTab);
+            //if (editBox == null) return base.ProcessCmdKey(ref msg, keyData);
 
-            if (keyData == (Keys.Control | Keys.A))
-            {
-                editBox.SelectAll();
-                return true;
-            }
+            //if (keyData == (Keys.Control | Keys.A))
+            //{
+            //    editBox.SelectAll();
+            //    return true;
+            //}
 
-            if (keyData == (Keys.Control | Keys.C))
-            {
-                if (editBox.SelectionLength > 0)
-                    editBox.Copy();
-                return true;
-            }
+            //if (keyData == (Keys.Control | Keys.C))
+            //{
+            //    if (editBox.SelectionLength > 0)
+            //        editBox.Copy();
+            //    return true;
+            //}
 
-            if (keyData == (Keys.Control | Keys.X))
-            {
-                if (editBox.SelectionLength > 0)
-                    editBox.Cut();
-                return true;
-            }
+            //if (keyData == (Keys.Control | Keys.X))
+            //{
+            //    if (editBox.SelectionLength > 0)
+            //        editBox.Cut();
+            //    return true;
+            //}
 
-            if (keyData == (Keys.Control | Keys.V))
-            {
-                if (Clipboard.ContainsText())
-                    editBox.Paste();
-                return true;
-            }
+            //if (keyData == (Keys.Control | Keys.V))
+            //{
+            //    if (Clipboard.ContainsText())
+            //        editBox.Paste();
+            //    return true;
+            //}
 
             return base.ProcessCmdKey(ref msg, keyData);
         }
@@ -781,13 +837,9 @@ namespace editor
             try
             {
                 Application.DoEvents();
-
                 string input = editBox.Text;
-
                 dataGridView.Rows.Clear();
-
                 List<SyntaxError> allErrors = new List<SyntaxError>();
-
                 var tokens = analyzer.Analyze(input);
 
                 foreach (var token in tokens)
@@ -806,91 +858,109 @@ namespace editor
 
                 dynamic syntaxErrors = syntax.Parse(tokens);
                 allErrors.AddRange(syntaxErrors);
-
-                List<SyntaxError> sortedErrors = allErrors.OrderBy(e => e.Line)
-                                   .ThenBy(e => e.Position)
-                                   .ToList();
+                List<SyntaxError> sortedErrors = allErrors.OrderBy(e => e.Line).ThenBy(e => e.Position).ToList();
 
                 foreach (var error in sortedErrors)
                 {
                     int rowIndex = dataGridView.Rows.Add(
                         error.InvalidFragment,
                         error.Location,
-                        error.Description
+                        LocalizationManager.TranslateError(error.Description)
                     );
-
-                    dataGridView.Columns["Fragment"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-                    dataGridView.Columns["Location"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-                    dataGridView.Columns["Description"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
                     dataGridView.Rows[rowIndex].DefaultCellStyle.BackColor = Color.FromArgb(255, 240, 240);
                 }
 
                 int totalErrors = allErrors.Count;
-
                 DataGridViewRow countRow = new DataGridViewRow();
+                float currentGridFontSize = currentGlobalGridFontSize * 8;
+                countRow.DefaultCellStyle.Font = new Font(dataGridView.Font.FontFamily, currentGridFontSize, FontStyle.Bold);
                 countRow.DefaultCellStyle.BackColor = totalErrors == 0 ? Color.FromArgb(220, 255, 220) : Color.FromArgb(255, 220, 220);
-                countRow.DefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Bold);
                 countRow.DefaultCellStyle.ForeColor = totalErrors == 0 ? Color.Green : Color.Red;
 
                 DataGridViewCell countCell = new DataGridViewTextBoxCell();
                 if (totalErrors == 0)
                 {
-                    countCell.Value = $"Общее количество ошибок: {totalErrors} - Синтаксических ошибок не обнаружено!";
+                    countCell.Value = LocalizationManager.FormatString("totalErrors", totalErrors) + " - " + LocalizationManager.GetString("noErrors");
                 }
                 else
                 {
-                    countCell.Value = $"Общее количество ошибок: {totalErrors}";
+                    countCell.Value = LocalizationManager.FormatString("totalErrors", totalErrors);
                 }
                 countRow.Cells.Add(countCell);
-
-                DataGridViewCell emptyCell3 = new DataGridViewTextBoxCell();
-                emptyCell3.Value = "";
-                countRow.Cells.Add(emptyCell3);
-
-                DataGridViewCell emptyCell4 = new DataGridViewTextBoxCell();
-                emptyCell4.Value = "";
-                countRow.Cells.Add(emptyCell4);
-
+                countRow.Cells.Add(new DataGridViewTextBoxCell());
+                countRow.Cells.Add(new DataGridViewTextBoxCell());
                 dataGridView.Rows.Add(countRow);
 
                 if (totalErrors == 0)
                 {
-                    dataGridView.Text = "Анализ завершен. Ошибок не обнаружено!";
-                    MessageBox.Show("Анализ завершен.Ошибок не обнаружено!");
+                    MessageBox.Show(LocalizationManager.GetString("analysisComplete"),
+                        LocalizationManager.GetString("start"),
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 else
                 {
-                    MessageBox.Show($"Анализ завершен. Найдено ошибок: {totalErrors}");
+                    MessageBox.Show(LocalizationManager.FormatString("errorsFound", totalErrors),
+                        LocalizationManager.GetString("start"),
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при анализе: {ex.Message}", "Ошибка",
+                MessageBox.Show(LocalizationManager.FormatString("analysisError", ex.Message),
+                    LocalizationManager.GetString("start"),
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private void ErrorGridView_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-            DataGridView dataGridView = sender as DataGridView;
             if (e.RowIndex >= 0 && e.RowIndex < dataGridView.Rows.Count - 1)
             {
+                DataGridView dataGridView = sender as DataGridView;
+                if (dataGridView == null) return;
+
                 var row = dataGridView.Rows[e.RowIndex];
-                string location = row.Cells["Location"].Value?.ToString();
+
+                string location = "";
+                if (row.Cells.Count > 1 && row.Cells[1].Value != null)
+                {
+                    location = row.Cells[1].Value.ToString();
+                }
+
+                if (string.IsNullOrEmpty(location) && dataGridView.Columns.Contains("Location"))
+                {
+                    location = row.Cells["Location"].Value?.ToString();
+                }
 
                 if (!string.IsNullOrEmpty(location))
                 {
-                    var parts = location.Replace("строка ", "").Split(',');
-                    if (parts.Length == 2)
+                    int line = -1;
+                    int position = -1;
+
+                    if (location.Contains("строка"))
                     {
-                        if (int.TryParse(parts[0], out int line))
+                        var parts = location.Replace("строка ", "").Split(',');
+                        if (parts.Length == 2)
                         {
+                            int.TryParse(parts[0], out line);
                             var posPart = parts[1].Replace("позиция", "").Trim();
-                            if (int.TryParse(posPart, out int position))
-                            {
-                                NavigateToPosition(line, position);
-                            }
+                            int.TryParse(posPart, out position);
                         }
+                    }
+                    else if (location.Contains("line"))
+                    {
+                        var parts = location.Replace("line ", "").Split(',');
+                        if (parts.Length == 2)
+                        {
+                            int.TryParse(parts[0], out line);
+                            var posPart = parts[1].Replace("position", "").Trim();
+                            int.TryParse(posPart, out position);
+                        }
+                    }
+
+                    if (line > 0 && position >= 0)
+                    {
+                        NavigateToPosition(line, position);
                     }
                 }
             }
@@ -899,21 +969,43 @@ namespace editor
         private void NavigateToPosition(int line, int position)
         {
             RichTextBox richTextBoxEd = GetEditRichTextBox(tabControl1.SelectedTab);
+            if (richTextBoxEd == null) return;
+
             string[] lines = richTextBoxEd.Lines;
-            if (line <= lines.Length)
+
+            if (line <= lines.Length && line >= 1)
             {
                 int charIndex = 0;
+
                 for (int i = 0; i < line - 1; i++)
                 {
                     charIndex += lines[i].Length;
+                    charIndex += Environment.NewLine.Length;
                 }
-                charIndex += position + (1 * line - 2);
 
-                if (charIndex >= 0 && charIndex <= richTextBoxEd.TextLength)
+                int positionInLine = Math.Min(position - 1, lines[line - 1].Length - 1);
+                if (positionInLine < 0) positionInLine = 0;
+                charIndex += positionInLine;
+
+                if (charIndex >= 0 && charIndex < richTextBoxEd.TextLength)
                 {
                     richTextBoxEd.Focus();
                     richTextBoxEd.Select(charIndex, 1);
                     richTextBoxEd.ScrollToCaret();
+
+                    richTextBoxEd.SelectionColor = Color.Red;
+
+                    System.Timers.Timer timer = new System.Timers.Timer(500);
+                    timer.Elapsed += (s, args) =>
+                    {
+                        richTextBoxEd.Invoke(new Action(() =>
+                        {
+                            richTextBoxEd.SelectionColor = Color.Black;
+                        }));
+                        timer.Stop();
+                        timer.Dispose();
+                    };
+                    timer.Start();
                 }
             }
         }
@@ -933,10 +1025,7 @@ namespace editor
 
                 Process.Start(new ProcessStartInfo(tempFile) { UseShellExecute = true });
             }
-            catch (Exception ex)
-            {
-
-            }
+            catch (Exception ex) { }
         }
 
         private void постановкаЗадачиToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1018,5 +1107,228 @@ namespace editor
             catch (Exception ex)
             { }
         }
+
+        private void ИзменениеРазмераТекстаToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (tabControl1.TabPages.Count == 0) return;
+
+            RichTextBox currentEditBox = GetEditRichTextBox(tabControl1.SelectedTab);
+            DataGridView currentdataGridView = GetDataGridView(tabControl1.SelectedTab);
+
+            if (currentEditBox != null && currentdataGridView != null)
+            {
+                float currentEditZoom = currentEditBox.ZoomFactor;
+                float currentGridSize = currentdataGridView.Font.Size / 8f;
+
+                using (FontSizeDialog dialog = new FontSizeDialog(currentEditZoom, currentGridSize))
+                {
+                    if (dialog.ShowDialog() == DialogResult.OK)
+                    {
+                        currentGlobalEditZoom = dialog.EditBoxFontSize;
+                        currentGlobalGridFontSize = dialog.DataGridViewFontSize;
+
+                        foreach (TabPage page in tabControl1.TabPages)
+                        {
+                            ApplyFontSizeToPage(page, currentGlobalEditZoom, currentGlobalGridFontSize);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void ApplyFontSizeToPage(TabPage page, float editZoom, float gridFontSize)
+        {
+            RichTextBox box = GetEditRichTextBox(page);
+            DataGridView grid = GetDataGridView(page);
+
+            if (box != null)
+            {
+                box.ZoomFactor = editZoom;
+            }
+
+            if (grid != null)
+            {
+                float newFontSize = gridFontSize * 8;
+                ApplyFontToDataGridView(grid, newFontSize, gridFontSize);
+            }
+        }
+
+        private void ApplyFontToDataGridView(DataGridView grid, float fontSize, float zoomFactor)
+        {
+            if (grid == null) return;
+
+            FontStyle existingStyle = grid.Font.Style;
+            FontStyle existingHeaderStyle = grid.ColumnHeadersDefaultCellStyle.Font?.Style ?? FontStyle.Regular;
+            FontStyle existingRowsStyle = grid.RowsDefaultCellStyle.Font?.Style ?? existingStyle;
+
+            grid.Font = new Font(grid.Font.FontFamily, fontSize, existingStyle);
+            grid.ColumnHeadersDefaultCellStyle.Font = new Font(grid.Font.FontFamily, fontSize, FontStyle.Regular);
+            grid.RowsDefaultCellStyle.Font = new Font(grid.Font.FontFamily, fontSize, existingRowsStyle);
+
+            grid.RowTemplate.Height = (int)(25 * zoomFactor);
+            grid.ColumnHeadersHeight = (int)(30 * zoomFactor);
+
+            foreach (DataGridViewRow row in grid.Rows)
+            {
+                if (!row.IsNewRow)
+                {
+                    row.DefaultCellStyle.Font = new Font(grid.Font.FontFamily, fontSize, existingRowsStyle);
+                }
+            }
+        }
+
+        private void РусскийToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            LocalizationManager.SetLanguage("ru");
+            UpdateUILanguage();
+            UpdateAllDataGridViewColumns();
+            UpdateAllDataGridViewContent();
+        }
+
+        private void АнглийскийToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            LocalizationManager.SetLanguage("en");
+            UpdateUILanguage();
+            UpdateAllDataGridViewColumns();
+            UpdateAllDataGridViewContent();
+        }
+
+        private void UpdateUILanguage()
+        {
+            файлToolStripMenuItem.Text = LocalizationManager.GetString("file");
+            создатьToolStripMenuItem.Text = LocalizationManager.GetString("new");
+            открытьToolStripMenuItem.Text = LocalizationManager.GetString("open");
+            сохранитьToolStripMenuItem.Text = LocalizationManager.GetString("save");
+            сохранитьКакToolStripMenuItem.Text = LocalizationManager.GetString("saveAs");
+            выходToolStripMenuItem.Text = LocalizationManager.GetString("exit");
+            открытьПример1ToolStripMenuItem.Text = LocalizationManager.GetString("openExample1");
+            открытьПример2ToolStripMenuItem.Text = LocalizationManager.GetString("openExample2");
+
+            правкаToolStripMenuItem.Text = LocalizationManager.GetString("edit");
+            отменитьToolStripMenuItem.Text = LocalizationManager.GetString("undo");
+            вернутьToolStripMenuItem.Text = LocalizationManager.GetString("redo");
+            вырезатьToolStripMenuItem.Text = LocalizationManager.GetString("cut");
+            копироватьToolStripMenuItem.Text = LocalizationManager.GetString("copy");
+            вставитьToolStripMenuItem.Text = LocalizationManager.GetString("paste");
+            отменитьВсеИзмененияToolStripMenuItem.Text = LocalizationManager.GetString("undoAll");
+            выделитьВсёToolStripMenuItem.Text = LocalizationManager.GetString("selectAll");
+
+            текстToolStripMenuItem.Text = LocalizationManager.GetString("text");
+            постановкаЗадачиToolStripMenuItem.Text = LocalizationManager.GetString("task");
+            грамматикаToolStripMenuItem.Text = LocalizationManager.GetString("grammar");
+            классификацияГрамматикиToolStripMenuItem.Text = LocalizationManager.GetString("grammarClass");
+            методАнализаToolStripMenuItem.Text = LocalizationManager.GetString("analysisMethod");
+            текстовыйПримерToolStripMenuItem.Text = LocalizationManager.GetString("testExample");
+            списокЛитературыToolStripMenuItem.Text = LocalizationManager.GetString("literature");
+            исходныйКодПрограммыToolStripMenuItem.Text = LocalizationManager.GetString("sourceCode");
+
+            пускToolStripMenuItem.Text = LocalizationManager.GetString("start");
+            настройкиToolStripMenuItem.Text = LocalizationManager.GetString("settings");
+            изменениеРазмераТекстаToolStripMenuItem.Text = LocalizationManager.GetString("fontSize");
+            языкToolStripMenuItem.Text = LocalizationManager.GetString("language");
+            русскийToolStripMenuItem.Text = LocalizationManager.GetString("russian");
+            английскийToolStripMenuItem.Text = LocalizationManager.GetString("english");
+
+            справкаToolStripMenuItem.Text = LocalizationManager.GetString("help");
+            вызовСправкиToolStripMenuItem.Text = LocalizationManager.GetString("callHelp");
+            оПрограммеToolStripMenuItem.Text = LocalizationManager.GetString("about");
+
+            toolTip1.SetToolTip(createButton, LocalizationManager.GetString("tooltipNew"));
+            toolTip1.SetToolTip(openButton, LocalizationManager.GetString("tooltipOpen"));
+            toolTip1.SetToolTip(saveButton, LocalizationManager.GetString("tooltipSave"));
+            toolTip1.SetToolTip(cancelButton, LocalizationManager.GetString("tooltipUndoAll"));
+            toolTip1.SetToolTip(backButton, LocalizationManager.GetString("tooltipUndo"));
+            toolTip1.SetToolTip(forwardButton, LocalizationManager.GetString("tooltipRedo"));
+            toolTip1.SetToolTip(copyButton, LocalizationManager.GetString("tooltipCopy"));
+            toolTip1.SetToolTip(cutButton, LocalizationManager.GetString("tooltipCut"));
+            toolTip1.SetToolTip(pasteButton, LocalizationManager.GetString("tooltipPaste"));
+            toolTip1.SetToolTip(startButton, LocalizationManager.GetString("tooltipStart"));
+            toolTip1.SetToolTip(infoButton, LocalizationManager.GetString("tooltipHelp"));
+            toolTip1.SetToolTip(button1, LocalizationManager.GetString("tooltipAbout"));
+        }
+
+        private void UpdateAllDataGridViewColumns()
+        {
+            foreach (TabPage page in tabControl1.TabPages)
+            {
+                DataGridView dataGridView = GetDataGridView(page);
+                if (dataGridView != null && dataGridView.Columns.Count >= 3)
+                {
+                    dataGridView.Columns[0].HeaderText = LocalizationManager.GetString("errorColumn");
+                    dataGridView.Columns[1].HeaderText = LocalizationManager.GetString("locationColumn");
+                    dataGridView.Columns[2].HeaderText = LocalizationManager.GetString("descriptionColumn");
+                }
+            }
+        }
+
+        private void UpdateAllDataGridViewContent()
+        {
+            foreach (TabPage page in tabControl1.TabPages)
+            {
+                DataGridView dataGridView = GetDataGridView(page);
+                if (dataGridView != null && dataGridView.Rows.Count > 0)
+                {
+                    if (dataGridView.Columns.Count >= 3)
+                    {
+                        dataGridView.Columns[0].HeaderText = LocalizationManager.GetString("errorColumn");
+                        dataGridView.Columns[1].HeaderText = LocalizationManager.GetString("locationColumn");
+                        dataGridView.Columns[2].HeaderText = LocalizationManager.GetString("descriptionColumn");
+                    }
+
+                    for (int i = 0; i < dataGridView.Rows.Count - 1; i++)
+                    {
+                        var row = dataGridView.Rows[i];
+                        if (row.Cells[2].Value != null)
+                        {
+                            string originalError = row.Cells[2].Value.ToString();
+                            row.Cells[2].Value = LocalizationManager.TranslateError(originalError);
+                        }
+                    }
+
+                    if (dataGridView.Rows.Count > 0)
+                    {
+                        var lastRow = dataGridView.Rows[dataGridView.Rows.Count - 1];
+                        if (lastRow.Cells[0].Value != null)
+                        {
+                            string totalText = lastRow.Cells[0].Value.ToString();
+                            if (totalText.Contains("Общее количество ошибок") || totalText.Contains("Total errors"))
+                            {
+                                int errorsCount = 0;
+                                var match = System.Text.RegularExpressions.Regex.Match(totalText, @"\d+");
+                                if (match.Success)
+                                {
+                                    errorsCount = int.Parse(match.Value);
+                                }
+
+                                if (errorsCount == 0)
+                                {
+                                    lastRow.Cells[0].Value = LocalizationManager.FormatString("totalErrors", errorsCount) + " - " + LocalizationManager.GetString("noErrors");
+                                }
+                                else
+                                {
+                                    lastRow.Cells[0].Value = LocalizationManager.FormatString("totalErrors", errorsCount);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private DataGridView GetDataGridView(TabPage page)
+        {
+            if (page == null || page.Controls.Count == 0) return null;
+
+            SplitContainer split = page.Controls[0] as SplitContainer;
+            if (split != null && split.Panel2.Controls.Count > 0)
+            {
+                return split.Panel2.Controls[0] as DataGridView;
+            }
+            return null;
+        }
+
+        
+
+
     }
 }

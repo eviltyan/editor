@@ -10,7 +10,16 @@ namespace editor
         public int Line { get; set; }
         public int Position { get; set; }
         public string Description { get; set; }
-        public string Location => $"строка {Line}, позиция {Position}";
+        public string Location
+        {
+            get
+            {
+                if (LocalizationManager.CurrentLanguage == "en")
+                    return $"line {Line}, position {Position}";
+                else
+                    return $"строка {Line}, позиция {Position}";
+            }
+        }
     }
 
     public class SyntaxAutomaton
@@ -494,7 +503,7 @@ namespace editor
                 InvalidFragment = string.IsNullOrEmpty(fragment) ? "<конец файла>" : fragment,
                 Line = line,
                 Position = position,
-                Description = description
+                Description = LocalizationManager.TranslateError(description)
             });
         }
     }

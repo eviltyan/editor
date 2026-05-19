@@ -1,18 +1,18 @@
 # Дополнительное задание к лабораторной работе 1  
 ## 1. Изменение размеров текста в окне редактирования и окне вывода результатов.  
-![alt text](recources/gifs/1.gif)  
+![alt text](recources/videos/1.webm)  
   
 ## 2. Интерфейс с вкладками, позволяющий одновременно работать с несколькими текстами (для окна редактирования).  
-![alt text](recources/gifs/2.gif)  
+![alt text](recources/videos/2.webm)  
   
 ## 3. Выбор языка интерфейса приложения (интернационализация).  
-![alt text](recources/gifs/3.gif)  
+![alt text](recources/videos/3.webm)  
   
 ## 4. Нумерация строк в окне редактирования текста.  
 ![alt text](recources/images/image-39.png)  
   
 ## 5. Открытие файла при перетаскивании иконки в окно программы.  
-![alt text](recources/gifs/5.gif)  
+![alt text](recources/videos/5.webm)  
   
 ## 6. Наличие строки состояния для отображения текущей информации о состоянии работы приложения.  
 ![alt text](recources/images/image-40.png)  

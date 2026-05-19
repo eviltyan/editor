@@ -1,3 +1,67 @@
+# Дополнительное задание к лабораторной работе 1  
+## 1. Изменение размеров текста в окне редактирования и окне вывода результатов.  
+![alt text](recources/gifs/1.gif)  
+  
+## 2. Интерфейс с вкладками, позволяющий одновременно работать с несколькими текстами (для окна редактирования).  
+![alt text](recources/gifs/2.gif)  
+  
+## 3. Выбор языка интерфейса приложения (интернационализация).  
+![alt text](recources/gifs/3.gif)  
+  
+## 4. Нумерация строк в окне редактирования текста.  
+![alt text](recources/images/image-39.png)  
+  
+## 5. Открытие файла при перетаскивании иконки в окно программы.  
+![alt text](recources/gifs/5.gif)  
+  
+## 6. Наличие строки состояния для отображения текущей информации о состоянии работы приложения.  
+![alt text](recources/images/image-40.png)  
+  
+![alt text](recources/images/image-41.png)  
+  
+## 7. Базовая подсветка синтаксиса в окне редактирования.  
+![alt text](recources/images/image-43.png)  
+  
+![alt text](recources/images/image-42.png)  
+  
+## 8. Интерфейс с вкладками, позволяющий работать с разными модулями программы (для окна вывода результатов)  
+![alt text](recources/images/image-44.png)  
+  
+![alt text](recources/images/image-45.png)  
+  
+## 9. Отображение ошибок в окне вывода результатов в виде таблицы.  
+![alt text](recources/images/image-46.png)  
+  
+## 10. Горячие клавиши для быстрых команд.  
+В коде реализованы следующие быстрые команды:  
+Работа с программой:  
+- F1 - Руководство пользователя;  
+- F12 - О программе;  
+- F5 - Пуск (Запуск лексера, парсера);  
+- Esc - Выход;  
+  
+Работа с текстом:  
+- Ctrl+C - Копировать текст;  
+- Ctrl+V - Вставить текст;  
+- Ctrl+X - Вырезать текст;  
+- Ctrl+A - Выделить весь текст;  
+- Ctrl+Z - Отменить изменение;  
+- Ctrl+Shift+Z - Вернуть изменение;  
+  
+Работа с файлами:  
+- Ctrl+N - Создать новый файл;  
+- Ctrl+O - Открыть файл;  
+- Ctrl+S - Сохранить файл;  
+- Ctrl+Shift+As - Сохранить файл как...  
+  
+![alt text](recources/images/image-47.png)  
+  
+![alt text](recources/images/image-48.png)  
+  
+![alt text](recources/images/image-49.png)  
+  
+  
+  
 # Лабораторная работа 3. Разработка синтаксического анализатора (парсера)
 
 ## Цель работы
@@ -93,7 +157,7 @@ G[<Z>]:
 ## Метод анализа
 Граф автоматной грамматики
 
-![alt text](g3.drawio.png)
+![alt text](recources/images/g3.drawio.png)
 
 ## Диагностика и нейтрализация синтаксических ошибок
 В данной работе используется алгоритм нейтрализации синтаксических ошибок методом Айронса.  
@@ -125,29 +189,29 @@ languages <- c("Swift", "Java", "R");
 numbers <- c(1, 2, 3, 4, 5);  
 x <- c(1, 5.4, TRUE, "hello");  
 
-![alt text](image-33.png)
+![alt text](recources/images/image-33.png)
 
 ### Строка с одной ошибкой
 languages <- c("Swift" "Java", "R");  
 numbers <- c(1, 2, 3, 4, 5);  
 x <- c(1, 5.4, TRUE, "hello");  
 
-![alt text](image-34.png)
+![alt text](recources/images/image-34.png)
 
 ### Строка с несколькими ошибками
 languages <- c("Swift" "Java", "R");  
 numbers <- c(1, 2, 3, .4, 5);  
 x <- c(1, 5., TRUE,)"hello");  
 
-![alt text](image-35.png)
+![alt text](recources/images/image-35.png)
 
 ### Пустая строка
-![alt text](image-38.png)
+![alt text](recources/images/image-38.png)
 
 ### Строка без первого ключевого слова
 <- c("Swift" "Java", "R");  
 
-![alt text](image-37.png)
+![alt text](recources/images/image-37.png)
 
 
 
@@ -198,7 +262,7 @@ x <- NULL;
 14. Ключевое слово NULL
 
 ## Диаграмма состояний
-![alt text](g.drawio.png)
+![alt text](recources/images/g.drawio.png)
 
 ### Краткое описание работы автомата:
 Сканер последовательно считывает символы из полученной строки и сопоставляет их со списком допустимых символов. Состояния переключаются на основании текущего прочитанного символа: токен либо увеличивается, либо завершается и состояние переходит к первоначальному. При прочтении недопустимого символа позиция и символ сохраняются с сообщением об ошибке.
@@ -207,19 +271,19 @@ x <- NULL;
 ### Корректная строка:
 languages <- c("Swift", "Java", "R");
 
-![alt text](image-30.png)
+![alt text](recources/images/image-30.png)
 
 ### Строка с недопустимым символом:
 numbers <%- c(1№, 2);
 
-![alt text](image-31.png)
+![alt text](recources/images/image-31.png)
 
 ### Многострочный пример:
 x <- c(1, 5.4, TRUE);
   
 x <-1;
 
-![alt text](image-32.png)
+![alt text](recources/images/image-32.png)
 
 # Лабораторная работа 1. Разработка пользовательского интерфейса (GUI) для языкового процессора.  
   
@@ -257,74 +321,74 @@ editor.exe
 1) Файл  
 a. Создать  
 Создает новый текстовый документ.  
-![alt text](image.png)  
-![alt text](image-4.png)  
-![alt text](image-1.png)  
+![alt text](recources/images/image.png)  
+![alt text](recources/images/image-4.png)  
+![alt text](recources/images/image-1.png)  
   
 b. Открыть  
 Открывает текстовый документ в новой вкладке.  
-![alt text](image-2.png)  
-![alt text](image-5.png)  
-![alt text](image-3.png)  
+![alt text](recources/images/image-2.png)  
+![alt text](recources/images/image-5.png)  
+![alt text](recources/images/image-3.png)  
   
 c. Сохранить  
 Сохраняет изменения в документе. Если файл новый, то открывается меню сохранения нового документа.  
-![alt text](image-6.png)  
-![alt text](image-7.png)  
-![alt text](image-9.png)  
+![alt text](recources/images/image-6.png)  
+![alt text](recources/images/image-7.png)  
+![alt text](recources/images/image-9.png)  
   
 d. Сохранить как  
 Открывает меню для сохранения нового документа с именем и расположением, выбранным пользователем.  
-![alt text](image-10.png)  
-![alt text](image-8.png)  
+![alt text](recources/images/image-10.png)  
+![alt text](recources/images/image-8.png)  
   
 e. Выход  
 Закрывает программу. При наличии несохраненных изменений предлагает сохранить каждый файл.  
-![alt text](image-11.png)  
+![alt text](recources/images/image-11.png)  
   
 2) Правка  
 a. Отменить  
 Отменяет внесенное изменение в файле.  
-![alt text](image-12.png)  
-![alt text](image-13.png)  
+![alt text](recources/images/image-12.png)  
+![alt text](recources/images/image-13.png)  
   
 b. Вернуть  
 Возвращает отмененное изменение.  
-![alt text](image-14.png)  
-![alt text](image-15.png)  
+![alt text](recources/images/image-14.png)  
+![alt text](recources/images/image-15.png)  
   
 c. Вырезать  
 Вырезает выделенный текст, копируя его в буфер. Работают горячие клавиши Ctrl+X.  
-![alt text](image-18.png)  
-![alt text](image-19.png)  
+![alt text](recources/images/image-18.png)  
+![alt text](recources/images/image-19.png)  
   
 d. Копировать  
 Копирует выделенный текст в буфер.  Работают горячие клавиши Ctrl+C.  
-![alt text](image-16.png)  
-![alt text](image-17.png)  
+![alt text](recources/images/image-16.png)  
+![alt text](recources/images/image-17.png)  
   
 e. Вставить  
 Вставляет скопированный или вырезанный текст из буфера. Работают горячие клавиши Ctrl+V.  
-![alt text](image-20.png)  
-![alt text](image-21.png)  
+![alt text](recources/images/image-20.png)  
+![alt text](recources/images/image-21.png)  
   
 f. Отменить все изменения  
 Отменяет все изменения, возвращая файл к исходному виду.  
-![alt text](image-22.png)  
-![alt text](image-23.png)  
+![alt text](recources/images/image-22.png)  
+![alt text](recources/images/image-23.png)  
   
 g. Выделить все  
 Выделяет весь текст в окне для редактирования текста.  Работают горячие клавиши Ctrl+A.  
-![alt text](image-24.png)  
+![alt text](recources/images/image-24.png)  
   
 3) Справка  
 a. Вызов справки  
 Открывает окно с ссылкой на справку, а также открывает ссылку в браузере.  
-![alt text](image-25.png)  
+![alt text](recources/images/image-25.png)  
   
 b. О программе  
 Открывает окно с информацией о программе.  
-![alt text](image-27.png)  
+![alt text](recources/images/image-27.png)  
   
 ## Ограничения: 
 Хранение до 100 изменений на документ.  

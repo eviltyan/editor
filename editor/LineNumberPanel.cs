@@ -16,6 +16,12 @@ namespace editor
             this.BorderStyle = BorderStyle.None;
             this.DoubleBuffered = true;
 
+            targetRichTextBox.FontChanged += (s, e) =>
+            {
+                this.Invalidate();
+                this.Refresh();
+            };
+
             targetRichTextBox.SelectionChanged += (s, e) => this.Invalidate();
             targetRichTextBox.VScroll += (s, e) => this.Invalidate();
             targetRichTextBox.TextChanged += (s, e) => this.Invalidate();

@@ -281,8 +281,42 @@ namespace editor
                     float newSize = editBox.ZoomFactor + (e.Delta > 0 ? 0.1f : -0.1f);
                     newSize = Math.Max(0.5f, Math.Min(2.0f, newSize));
                     editBox.ZoomFactor = newSize;
+
+                    TabPage currentPage = FindPageContainingControl(editBox);
+                    if (currentPage != null)
+                    {
+                        SplitContainer split = currentPage.Controls[0] as SplitContainer;
+                        if (split?.Panel1.Controls[0] is TableLayoutPanel container)
+                        {
+                            foreach (Control ctrl in container.Controls)
+                            {
+                                if (ctrl is LineNumberPanel linePanel)
+                                {
+                                    linePanel.Invalidate();
+                                    linePanel.Refresh();
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
             }
+        }
+
+        private TabPage FindPageContainingControl(Control control)
+        {
+            foreach (TabPage page in tabControl1.TabPages)
+            {
+                SplitContainer split = page.Controls[0] as SplitContainer;
+                if (split != null)
+                {
+                    if (split.Panel1.Controls.Contains(control))
+                        return page;
+                    if (split.Panel2.Controls.Contains(control))
+                        return page;
+                }
+            }
+            return null;
         }
 
         private void Undo()
@@ -1388,6 +1422,20 @@ namespace editor
             if (box != null)
             {
                 box.ZoomFactor = editZoom;
+
+                SplitContainer split = page.Controls[0] as SplitContainer;
+                if (split?.Panel1.Controls[0] is TableLayoutPanel container)
+                {
+                    foreach (Control ctrl in container.Controls)
+                    {
+                        if (ctrl is LineNumberPanel linePanel)
+                        {
+                            linePanel.Invalidate();
+                            linePanel.Refresh();
+                            break;
+                        }
+                    }
+                }
             }
 
             float newFontSize = gridFontSize * 8;
@@ -1409,19 +1457,29 @@ namespace editor
 
             FontStyle existingStyle = grid.Font.Style;
 
-            grid.Font = new Font(grid.Font.FontFamily, fontSize, existingStyle);
-            grid.ColumnHeadersDefaultCellStyle.Font = new Font(grid.Font.FontFamily, fontSize, FontStyle.Regular);
-            grid.RowsDefaultCellStyle.Font = new Font(grid.Font.FontFamily, fontSize, existingStyle);
-            grid.RowTemplate.Height = (int)(25 * zoomFactor);
-            grid.ColumnHeadersHeight = (int)(30 * zoomFactor);
+            Font newFont = new Font(grid.Font.FontFamily, fontSize, existingStyle);
+            Font newHeaderFont = new Font(grid.Font.FontFamily, fontSize, FontStyle.Regular);
+
+            grid.Font = newFont;
+            grid.ColumnHeadersDefaultCellStyle.Font = newHeaderFont;
+            grid.RowsDefaultCellStyle.Font = newFont;
+
+            int newRowHeight = (int)(25 * zoomFactor);
+            int newHeaderHeight = (int)(30 * zoomFactor);
+
+            grid.RowTemplate.Height = newRowHeight;
+            grid.ColumnHeadersHeight = newHeaderHeight;
 
             foreach (DataGridViewRow row in grid.Rows)
             {
                 if (!row.IsNewRow)
                 {
-                    row.DefaultCellStyle.Font = new Font(grid.Font.FontFamily, fontSize, existingStyle);
+                    row.Height = newRowHeight;
+                    row.DefaultCellStyle.Font = newFont;
                 }
             }
+
+            grid.Refresh();
         }
 
         private void РусскийToolStripMenuItem_Click(object sender, EventArgs e)

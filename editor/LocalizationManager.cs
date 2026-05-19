@@ -64,7 +64,8 @@ namespace editor
                 { "about", "О программе" },
                 
                 { "windowTitle", "Компилятор - Редактор кода" },
-                
+                { "windowTitleEn", "Компилятор - Редактор кода" },
+
                 { "errorColumn", "Неверный фрагмент" },
                 { "locationColumn", "Местоположение" },
                 { "descriptionColumn", "Описание ошибки" },
@@ -175,7 +176,8 @@ namespace editor
                 { "about", "About" },
                 
                 { "windowTitle", "Compiler - Code Editor" },
-                
+                { "windowTitleEn", "Compiler - Code Editor" },
+
                 { "errorColumn", "Invalid Fragment" },
                 { "locationColumn", "Location" },
                 { "descriptionColumn", "Error Description" },

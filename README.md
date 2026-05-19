@@ -1,18 +1,18 @@
 # Дополнительное задание к лабораторной работе 1  
 ## 1. Изменение размеров текста в окне редактирования и окне вывода результатов.  
-![alt text](recources/videos/1.webm)  
+<video src="recources/videos/1.webm" width="100%" autoplay loop muted playsinline></video>  
   
 ## 2. Интерфейс с вкладками, позволяющий одновременно работать с несколькими текстами (для окна редактирования).  
-![alt text](recources/videos/2.webm)  
+<video src="recources/videos/2.webm" width="100%" autoplay loop muted playsinline></video>  
   
 ## 3. Выбор языка интерфейса приложения (интернационализация).  
-![alt text](recources/videos/3.webm)  
+<video src="recources/videos/3.webm" width="100%" autoplay loop muted playsinline></video>  
   
 ## 4. Нумерация строк в окне редактирования текста.  
 ![alt text](recources/images/image-39.png)  
   
 ## 5. Открытие файла при перетаскивании иконки в окно программы.  
-![alt text](recources/videos/5.webm)  
+<video src="recources/videos/5.webm" width="100%" autoplay loop muted playsinline></video>  
   
 ## 6. Наличие строки состояния для отображения текущей информации о состоянии работы приложения.  
 ![alt text](recources/images/image-40.png)  

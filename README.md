@@ -1,18 +1,18 @@
 # Дополнительное задание к лабораторной работе 1  
 ## 1. Изменение размеров текста в окне редактирования и окне вывода результатов.  
-<video src="recources/videos/11.mp4" width="320" height="240" controls></video>  
+<video src="https://github.com/user-attachments/assets/29a12645-0bf2-443d-94e9-5cc205afe79b" width="320" height="240" controls></video>  
   
 ## 2. Интерфейс с вкладками, позволяющий одновременно работать с несколькими текстами (для окна редактирования).  
-<video src="recources/videos/22.mp4" width="320" height="240" controls></video>  
+<video src="https://github.com/user-attachments/assets/8e45070f-9bf0-4304-a2f8-319f370d0c94" width="320" height="240" controls></video>  
   
 ## 3. Выбор языка интерфейса приложения (интернационализация).  
-<video src="recources/videos/33.mp4" width="320" height="240" controls></video>  
+<video src="https://github.com/user-attachments/assets/a79767c4-eb9d-4090-bafd-1b37dd0dd2b5" width="320" height="240" controls></video>  
   
 ## 4. Нумерация строк в окне редактирования текста.  
 ![alt text](recources/images/image-39.png)  
   
 ## 5. Открытие файла при перетаскивании иконки в окно программы.  
-<video src="recources/videos/55.mp4" width="320" height="240" controls></video>  
+<video src="https://github.com/user-attachments/assets/64427634-35fa-40f1-bdcf-b5386c5d134b" height="240" controls></video>  
   
 ## 6. Наличие строки состояния для отображения текущей информации о состоянии работы приложения.  
 ![alt text](recources/images/image-40.png)  
